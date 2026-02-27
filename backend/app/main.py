@@ -1,0 +1,132 @@
+"""
+Chairside Companion — FastAPI Application Entry Point
+"""
+
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.config import settings
+from app.routes.clinical_input import router as clinical_input_router
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+
+logging.basicConfig(
+    level=logging.DEBUG if settings.DEBUG else logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+)
+logger = logging.getLogger(__name__)
+
+
+# ─── Lifespan (startup / shutdown) ──────────────────────────────────────────
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Starting %s v%s", settings.APP_NAME, settings.APP_VERSION)
+    # TODO: Run Alembic migrations or verify DB connectivity here
+    yield
+    logger.info("Shutting down %s", settings.APP_NAME)
+
+
+# ─── App Factory ─────────────────────────────────────────────────────────────
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description=(
+        "AI-powered prosthodontic clinical platform. "
+        "Module 1: Clinical Input Processing."
+    ),
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+# ─── Middleware ───────────────────────────────────────────────────────────────
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ─── Global Exception Handlers ──────────────────────────────────────────────
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+) -> JSONResponse:
+    """
+    Transform Pydantic validation errors into the Module 1 error format (§10).
+    Returns 422 with per-field error array.
+    """
+    errors = []
+    for error in exc.errors():
+        # Extract the field name from the location tuple
+        loc = error.get("loc", ())
+        field = ".".join(str(part) for part in loc if part != "body")
+        errors.append({
+            "field": field or "unknown",
+            "message": error.get("msg", "Validation error"),
+        })
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "status": "error",
+            "errors": errors,
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(
+    request: Request,
+    exc: Exception,
+) -> JSONResponse:
+    """Catch-all handler — returns a generic 500 per §10."""
+    logger.exception("Unhandled exception: %s", str(exc))
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"message": "Internal server error."},
+    )
+
+
+# ─── Request Size Limiting Middleware ────────────────────────────────────────
+
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    """Module 1 §10: Reject payloads larger than MAX_REQUEST_BODY_MB."""
+    content_length = request.headers.get("content-length")
+    max_bytes = settings.MAX_REQUEST_BODY_MB * 1024 * 1024
+
+    if content_length and int(content_length) > max_bytes:
+        return JSONResponse(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            content={"message": "Request payload too large."},
+        )
+    return await call_next(request)
+
+
+# ─── Routers ─────────────────────────────────────────────────────────────────
+
+app.include_router(clinical_input_router)
+
+
+# ─── Health Check ────────────────────────────────────────────────────────────
+
+@app.get("/health", tags=["System"])
+async def health_check():
+    return {
+        "status": "healthy",
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+    }
