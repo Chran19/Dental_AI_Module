@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.routes.clinical_input import router as clinical_input_router
+from app.routes.risk_engine import router as risk_engine_router
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
@@ -39,7 +40,8 @@ app = FastAPI(
     version=settings.APP_VERSION,
     description=(
         "AI-powered prosthodontic clinical platform. "
-        "Module 1: Clinical Input Processing."
+        "Module 1: Clinical Input Processing. "
+        "Module 2: Rule-Based Risk Engine."
     ),
     lifespan=lifespan,
     docs_url="/docs",
@@ -119,6 +121,7 @@ async def limit_request_size(request: Request, call_next):
 # ─── Routers ─────────────────────────────────────────────────────────────────
 
 app.include_router(clinical_input_router)
+app.include_router(risk_engine_router)
 
 
 # ─── Health Check ────────────────────────────────────────────────────────────
