@@ -148,6 +148,102 @@ class UrgencyFlag(str, Enum):
 class CaseStatus(str, Enum):
     DRAFT = "Draft"
     VALIDATED = "Validated"
+
+
+# ─── Investigation & Imaging (M4) ─────────────────────────────────────────────────
+
+class ImagingType(str, Enum):
+    """Imaging modalities for investigation recommendations"""
+    OPG = "OPG"                              # Orthopantomogram
+    CBCT = "CBCT"                            # Cone Beam Computed Tomography
+    PERIAPICAL = "Periapical"                # Periapical radiograph
+    BITEWING = "Bitewing"                    # Bitewing radiograph
+    FULL_MOUTH_SERIES = "Full_Mouth_Series"
+
+
+class LabTestType(str, Enum):
+    """Laboratory tests for investigation"""
+    BLOOD_GLUCOSE = "Blood_Glucose"
+    INR = "INR"                            # Coagulation profile
+    CBC = "CBC"                            # Complete Blood Count
+    HEMOGLOBIN = "Hemoglobin"
+    HEMATOCRIT = "Hematocrit"
+    WBC = "WBC"                            # White Blood Cell
+    ESR = "ESR"                            # Erythrocyte Sedimentation Rate
+    CRP = "CRP"                            # C-Reactive Protein
+    LIVER_FUNCTION = "Liver_Function"
+    KIDNEY_FUNCTION = "Kidney_Function"
+
+
+class InvestigationUrgency(str, Enum):
+    """Priority level for investigation"""
+    ROUTINE = "Routine"
+    URGENT = "Urgent"
+    EMERGENCY = "Emergency"
+
+
+# ─── Treatment (M5) ────────────────────────────────────────────────────────────────
+
+class TreatmentType(str, Enum):
+    """Specific treatment procedures"""
+    EXTRACTION = "Extraction"
+    ROOT_CANAL = "Root_Canal"
+    ROOT_CANAL_RETREATMENT = "Root_Canal_Retreatment"
+    IMPLANT_PLACEMENT = "Implant_Placement"
+    IMPLANT_RESTORATION = "Implant_Restoration"
+    PROFESSIONAL_CLEANING = "Professional_Cleaning"
+    SCALING_ROOT_PLANING = "Scaling_Root_Planing"
+    RESTORATION_COMPOSITE = "Restoration_Composite"
+    RESTORATION_AMALGAM = "Restoration_Amalgam"
+    CROWN = "Crown"
+    BRIDGE = "Bridge"
+    PERIODONTAL_SURGERY = "Periodontal_Surgery"
+    BONE_GRAFT = "Bone_Graft"
+    SINUS_LIFT = "Sinus_Lift"
+    ANTIBIOTICS = "Antibiotics"
+    MANAGEMENT_CONSERVATIVE = "Management_Conservative"
+
+
+class TreatmentCategory(str, Enum):
+    """Broad categories of treatment"""
+    SURGICAL = "Surgical"
+    RESTORATIVE = "Restorative"
+    PREVENTATIVE = "Preventative"
+    PERIODONTAL = "Periodontal"
+    ENDODONTIC = "Endodontic"
+    PROSTHETIC = "Prosthetic"
+    MEDICAL_MANAGEMENT = "Medical_Management"
+
+
+class MedicationType(str, Enum):
+    """Types of medications to recommend"""
+    ANTIBIOTIC = "Antibiotic"
+    ANALGESIC = "Analgesic"
+    ANTI_INFLAMMATORY = "Anti_Inflammatory"
+    ANTIFUNGAL = "Antifungal"
+    ANTIMICROBIAL_RINSE = "Antimicrobial_Rinse"
+
+
+class MedicationClass(str, Enum):
+    """Medication drug classes"""
+    PENICILLIN = "Penicillin"
+    CEPHALOSPORIN = "Cephalosporin"
+    MACROLIDE = "Macrolide"
+    CLINDAMYCIN = "Clindamycin"
+    LINEZOLID = "Linezolid"
+    NSAID = "NSAID"
+    ACETAMINOPHEN = "Acetaminophen"
+    CORTICOSTEROID = "Corticosteroid"
+    CHLORHEXIDINE = "Chlorhexidine"
+    POVIDONE_IODINE = "Povidone_Iodine"
+
+
+class ContraindicationSeverity(str, Enum):
+    """How severe a contraindication is"""
+    MILD = "Mild"
+    MODERATE = "Moderate"
+    SEVERE = "Severe"
+    ABSOLUTE = "Absolute"
     ANALYZED = "Analyzed"
     CONFIRMED = "Confirmed"
 

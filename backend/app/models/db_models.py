@@ -152,6 +152,24 @@ class ClinicalCase(Base):
         JSONB, nullable=True, comment="Module 3 diagnosis output"
     )
 
+    # ── Investigation & Imaging (Module 4) ────────────────────────────────────
+    investigation_json: Mapped[dict | None] = mapped_column(
+        JSONB, nullable=True, comment="Module 4 investigation recommendations output"
+    )
+    investigations_completed: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+
+    # ── Treatment Suggestion (Module 5) ───────────────────────────────────────
+    treatment_json: Mapped[dict | None] = mapped_column(
+        JSONB, nullable=True, comment="Module 5 treatment suggestions output"
+    )
+    contraindications_flagged: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+
+    # ── Explainability & Audit (Module 6) ─────────────────────────────────────
+    explainability_json: Mapped[dict | None] = mapped_column(
+        JSONB, nullable=True, comment="Module 6 explanation report output"
+    )
+    clinical_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # ── Status & Timestamps ──────────────────────────────────────────────────
     status: Mapped[str] = mapped_column(
         SAEnum("Draft", "Validated", "Analyzed", "Confirmed", name="case_status_enum"),
