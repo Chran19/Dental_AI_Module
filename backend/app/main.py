@@ -13,6 +13,10 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.routes.clinical_input import router as clinical_input_router
 from app.routes.risk_engine import router as risk_engine_router
+from app.routes.diagnosis import router as diagnosis_router
+from app.routes.investigation import router as investigation_router
+from app.routes.treatment import router as treatment_router
+from app.routes.explainability import router as explainability_router
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
@@ -122,6 +126,10 @@ async def limit_request_size(request: Request, call_next):
 
 app.include_router(clinical_input_router)
 app.include_router(risk_engine_router)
+app.include_router(diagnosis_router)
+app.include_router(investigation_router)
+app.include_router(treatment_router)
+app.include_router(explainability_router)
 
 
 # ─── Health Check ────────────────────────────────────────────────────────────
