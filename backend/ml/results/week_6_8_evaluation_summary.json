@@ -1,0 +1,56 @@
+{
+  "diagnosis": {
+    "model": "XGBoost Multi-Label",
+    "exact_match_accuracy": 0.0,
+    "overall_label_accuracy": 0.0,
+    "per_label_accuracy": {
+      "Confirmed Diagnosis 1": 0.0,
+      "Confirmed Diagnosis 2": 0.0,
+      "Confirmed Diagnosis 3": 0.0
+    },
+    "test_samples": 105,
+    "features": 25
+  },
+  "treatment": {
+    "model": "XGBoost Multi-Class",
+    "accuracy": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1_score": 0.0,
+    "test_samples": 75,
+    "features": 15,
+    "n_classes": 4
+  },
+  "implant": {
+    "model": "Cox Proportional Hazards",
+    "concordance_index": 0.2857142857142857,
+    "events": 7,
+    "censored": 53,
+    "event_rate": 0.11666666666666667,
+    "test_samples": 60,
+    "features": 23,
+    "top_features": {
+      "follow_up_months": {
+        "coefficient": -0.3924533014965469,
+        "hazard_ratio": 0.6753978856866559
+      },
+      "surgical_technique": {
+        "coefficient": -0.15613336829321725,
+        "hazard_ratio": 0.8554450935106732
+      },
+      "implant_surface": {
+        "coefficient": 0.1100724700860877,
+        "hazard_ratio": 1.116358970158104
+      },
+      "bone_height_width_ratio": {
+        "coefficient": -0.09531597730480092,
+        "hazard_ratio": 0.9090856386512085
+      },
+      "jaw_location": {
+        "coefficient": -0.08660265835956625,
+        "hazard_ratio": 0.9170414019863281
+      }
+    }
+  },
+  "timestamp": "2026-03-20T23:33:50.153821"
+}

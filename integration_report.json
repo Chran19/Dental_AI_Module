@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-03-21T12:21:32.704007",
+  "test_type": "integration",
+  "status": "PASSED",
+  "modules": {
+    "M1_clinical_input": "WORKING",
+    "M2_risk_engine": "WORKING",
+    "M3_diagnosis": "WORKING",
+    "M4_investigation": "WORKING",
+    "M5_treatment": "WORKING",
+    "M6_explainability": "WORKING",
+    "M8_image_analysis": "WORKING"
+  },
+  "test_counts": {
+    "unit_tests": "154 passed",
+    "image_analysis": "PASSED"
+  }
+}

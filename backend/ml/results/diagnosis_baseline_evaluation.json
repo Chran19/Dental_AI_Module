@@ -1,0 +1,12 @@
+{
+  "exact_match_accuracy": 0.0,
+  "overall_label_accuracy": 0.0,
+  "per_label_accuracy": {
+    "diagnosis_1": 0.0,
+    "diagnosis_2": 0.0,
+    "diagnosis_3": 0.0
+  },
+  "n_samples": 105,
+  "n_features": 25,
+  "n_labels": 3
+}
