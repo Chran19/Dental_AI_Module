@@ -47,6 +47,28 @@ class SmokingStatus(str, Enum):
     FORMER_SMOKER = "Former_Smoker"
     CURRENT_SMOKER = "Current_Smoker"
 
+# ─── Image Modality ──────────────────────────────────────────────────────────────
+
+class ImageModality(str, Enum):
+    CBCT = "CBCT"
+    RADIOGRAPH = "Radiograph"
+    PHOTO = "Photo"
+    STL = "STL"
+    OTHER = "Other"
+
+# ─── Implant Workflow ────────────────────────────────────────────────────────────
+
+class ImplantStage(str, Enum):
+    PLANNING = "Planning"
+    SURGERY_SCHEDULED = "Surgery_Scheduled"
+    IMPLANT_PLACED = "Implant_Placed"
+    OSSEOINTEGRATION = "Osseointegration"  # Healing period
+    RESTORATION_PHASE = "Restoration_Phase"
+    COMPLETED = "Completed"
+    FAILED = "Failed"
+
+
+
 
 # ─── Symptoms & Complaint ────────────────────────────────────────────────────────
 

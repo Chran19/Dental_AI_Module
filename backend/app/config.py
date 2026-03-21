@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # ── File Upload ──────────────────────────────────────────────────────────
     MAX_UPLOAD_SIZE_MB: int = 50  # FR-03.2
     MAX_REQUEST_BODY_MB: int = 1  # Module 1 §10: payload limit
+    UPLOAD_DIR: str = "uploads"  # Directory for storing user uploaded files
 
     class Config:
         env_file = ".env"

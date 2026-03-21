@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.dependencies import get_current_doctor_id
 from app.services.patient_service import PatientCreate, PatientResponse, PatientService, PatientUpdate
 
 router = APIRouter(prefix="/api/patients", tags=["Patient Management (EHR)"])
@@ -22,9 +23,8 @@ async def get_patient_service(db: AsyncSession = Depends(get_db)) -> PatientServ
     return PatientService(db)
 
 
-async def get_current_doctor_id() -> uuid.UUID:
-    """Mock auth for development."""
-    return uuid.UUID("d0c1b2a3-e4f5-6789-0abc-de1234567890")
+# ─────────────────────────────────────────────────────────────────────────────
+
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────

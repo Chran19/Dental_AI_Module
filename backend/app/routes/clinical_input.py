@@ -10,8 +10,14 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
+from app.config import settings
+from app.dependencies import get_current_doctor_id
 from app.schemas.clinical_input import (
     ClinicalInputRequest,
     ClinicalInputResponse,
@@ -32,23 +38,7 @@ def get_clinical_input_service() -> ClinicalInputService:
 
 
 # ─── Dependency: Authenticated doctor ID ─────────────────────────────────────
-# TODO: Replace with real JWT auth dependency (AUTH module FR-01)
-
-async def get_current_doctor_id(request: Request) -> uuid.UUID:
-    """
-    Placeholder for JWT authentication.
-    In production, this extracts doctor_id from the Bearer token.
-    For development, returns a static UUID.
-    """
-    # Check for Authorization header
-    auth_header = request.headers.get("Authorization")
-    if auth_header and auth_header.startswith("Bearer "):
-        # TODO: Decode JWT and extract doctor_id
-        # For now, return a dev placeholder
-        pass
-
-    # Development fallback
-    return uuid.UUID("d0c1b2a3-e4f5-6789-0abc-de1234567890")
+# Imported from app.dependencies
 
 
 # ═════════════════════════════════════════════════════════════════════════════════
@@ -83,6 +73,7 @@ async def get_current_doctor_id(request: Request) -> uuid.UUID:
 )
 async def validate_clinical_input(
     payload: ClinicalInputRequest,
+    db: AsyncSession = Depends(get_db),
     doctor_id: uuid.UUID = Depends(get_current_doctor_id),
     service: ClinicalInputService = Depends(get_clinical_input_service),
 ) -> ClinicalInputResponse:
@@ -101,13 +92,11 @@ async def validate_clinical_input(
     """
     try:
         # Run the M1 processing pipeline
-        output: Module1Output = service.process(
+        output: Module1Output = await service.process(
             request=payload,
             doctor_id=doctor_id,
+            db=db
         )
-
-        # TODO: Persist to ClinicalCases table (§9 DB Mapping)
-        # await persist_clinical_case(output)
 
         logger.info(
             "M1 clinical input processed | case_id=%s patient_id=%s doctor_id=%s",

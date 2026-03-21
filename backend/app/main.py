@@ -18,6 +18,14 @@ from app.routes.investigation import router as investigation_router
 from app.routes.treatment import router as treatment_router
 from app.routes.explainability import router as explainability_router
 from app.routes.image_analysis import router as image_analysis_router
+from app.routes.auth import router as auth_router
+from app.routes.patients import router as patients_router
+from app.routes.images import router as images_router
+from app.routes.implants import router as implants_router
+
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
@@ -125,7 +133,18 @@ async def limit_request_size(request: Request, call_next):
 
 # ─── Routers ─────────────────────────────────────────────────────────────────
 
+app.include_router(auth_router)
+app.include_router(patients_router)
+app.include_router(images_router)
+app.include_router(implants_router)
 app.include_router(clinical_input_router)
+
+# ─── Static Files ────────────────────────────────────────────────────────────
+
+upload_dir = Path(settings.UPLOAD_DIR)
+upload_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/static/uploads", StaticFiles(directory=upload_dir), name="uploads")
+
 app.include_router(risk_engine_router)
 app.include_router(diagnosis_router)
 app.include_router(investigation_router)

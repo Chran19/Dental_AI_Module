@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Enum as SAEnum,
     Float,
@@ -188,6 +189,7 @@ class ClinicalCase(Base):
     # Relationships
     patient: Mapped["Patient"] = relationship(back_populates="clinical_cases")
     doctor: Mapped["User"] = relationship(back_populates="clinical_cases")
+    images: Mapped[list["Image"]] = relationship(back_populates="clinical_case", lazy="selectin")
 
 
 # ═════════════════════════════════════════════════════════════════════════════════
@@ -203,15 +205,26 @@ class Image(Base):
     patient_id: Mapped[uuid.UUID] = mapped_column(
         PGUUID(as_uuid=True), ForeignKey("patients.id"), nullable=False
     )
+    case_id: Mapped[uuid.UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("clinical_cases.id"), nullable=True
+    )
+    modality: Mapped[str] = mapped_column(
+        SAEnum("CBCT", "Radiograph", "Photo", "STL", "Other", name="image_modality_enum"),
+        nullable=False,
+        default="Other"
+    )
     file_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    file_path: Mapped[str] = mapped_column(String(1024), nullable=False, comment="Local filesystem path")
     file_type: Mapped[str] = mapped_column(String(10), nullable=False)  # dcm, stl, jpg, png
     file_size_mb: Mapped[float] = mapped_column(Float, nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     upload_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
     # Relationships
     patient: Mapped["Patient"] = relationship(back_populates="images")
+    clinical_case: Mapped["ClinicalCase"] = relationship(back_populates="images")
 
 
 # ═════════════════════════════════════════════════════════════════════════════════
@@ -231,15 +244,32 @@ class ImplantPlan(Base):
         PGUUID(as_uuid=True), ForeignKey("clinical_cases.id"), nullable=True
     )
     tooth_site: Mapped[str] = mapped_column(String(10), nullable=False)
+    
+    # Clinical Data
     bone_height: Mapped[float | None] = mapped_column(Float, nullable=True)
     bone_width: Mapped[float | None] = mapped_column(Float, nullable=True)
     implant_system: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    risk_flags: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    diameter: Mapped[float | None] = mapped_column(Float, nullable=True)
+    length: Mapped[float | None] = mapped_column(Float, nullable=True)
+    
+    # Workflow Tracking
     status: Mapped[str] = mapped_column(
-        SAEnum("Draft", "Final", name="implant_plan_status_enum"),
+        SAEnum("Draft", "Final", name="implant_plan_status_enum", create_type=False),
         nullable=False,
         default="Draft",
     )
+    clinical_stage: Mapped[str] = mapped_column(
+        SAEnum("Planning", "Surgery_Scheduled", "Implant_Placed", "Osseointegration", 
+               "Restoration_Phase", "Completed", "Failed", name="implant_stage_enum"),
+        nullable=False,
+        default="Planning"
+    )
+    surgery_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    restoration_date: Mapped[datetime | None] = mapped_column(Date, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    
+    risk_flags: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
