@@ -33,6 +33,10 @@ from app.schemas.clinical_input import (
 from app.services.sanitization import sanitize_string, sanitize_string_list
 
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.db_models import ClinicalCase
+
+
 class ClinicalInputService:
     """
     Orchestrates the Module 1 processing pipeline:
@@ -40,18 +44,22 @@ class ClinicalInputService:
       2. Compute flags (cross-field logic §4.2 / §5.3)
       3. Generate warnings
       4. Assemble the structured M1 output JSON
+      5. Persist to ClinicalCase table (EHR Integration)
     """
 
     # ─── PUBLIC API ──────────────────────────────────────────────────────────
 
-    def process(
+    async def process(
         self,
         request: ClinicalInputRequest,
         doctor_id: uuid.UUID,
+        db: AsyncSession | None = None,
     ) -> Module1Output:
         """
         Main entry point. Accepts a validated ClinicalInputRequest
         and returns the full Module1Output JSON contract.
+        
+        If 'db' is provided, saves the case to the database.
         """
         # Step 1 — Sanitize free-text fields ──────────────────────────────────
         sanitized = self._sanitize(request)
@@ -129,6 +137,27 @@ class ClinicalInputService:
             ),
         )
 
+        # Step 6 — Save to Database (if db session provided) ──────────────────
+        if db:
+            case_record = ClinicalCase(
+                id=case_id,
+                patient_id=sanitized.patient_id,
+                doctor_id=doctor_id,
+                clinical_input_json=output.model_dump(mode="json"),
+                chief_complaint=sanitized.chief_complaint,
+                urgency_flag=computed_flags.urgency_flag.value,
+                input_valid=True,
+                status="Validated",
+                created_at=now,
+                updated_at=now,
+            )
+            db.add(case_record)
+            # Commit happens in the context manager usually, but we can flush here
+            # For simplicity, we assume caller or context manager handles commit
+            # Unless we want to ensure ID is generated etc.
+            # But the caller (Dependency) does commit.
+            # Let's ensure the patient exists check if needed, but FK constraint handles it.
+        
         return output
 
     # ─── PRIVATE: SANITIZATION ───────────────────────────────────────────────
