@@ -530,3 +530,53 @@ class DiagnosisService:
         )
 
         return summary
+
+
+def get_diagnosis_with_image_evidence(patient_id: str, image_analysis: dict) -> dict:
+    """
+    Integrate Phase 4 image analysis results with diagnosis
+    
+    Args:
+        patient_id: Patient identifier
+        image_analysis: Results from Phase 4 image analyzer
+        
+    Returns:
+        Enhanced diagnosis with image evidence
+    """
+    logger.info(f"Integrating image evidence for patient {patient_id}")
+    
+    try:
+        if image_analysis.get('status') != 'success':
+            return {'error': 'Image analysis failed', 'status': 'unavailable'}
+        
+        # Extract key image findings
+        pathology_info = image_analysis.get('pathology_analysis', {})
+        bone_info = image_analysis.get('bone_analysis', {})
+        
+        integration_result = {
+            'status': 'integrated',
+            'image_evidence': {
+                'primary_pathology': pathology_info.get('primary_pathology', {}).get('name'),
+                'pathology_confidence': pathology_info.get('primary_pathology', {}).get('confidence', 0),
+                'severity_score': pathology_info.get('primary_pathology', {}).get('severity_score', 0),
+                'tooth_region': pathology_info.get('tooth_region', 'Unknown'),
+                'bone_quality': bone_info.get('bone_density', {}).get('bone_type', 'Unknown'),
+                'bone_loss_percentage': bone_info.get('alveolar_crest', {}).get('bone_loss_percentage', 0),
+                'cortication_present': bone_info.get('cortication', {}).get('present', False),
+                'clinical_summary': image_analysis.get('clinical_summary', ''),
+                'recommendations': image_analysis.get('recommendations', [])
+            },
+            'diagnosis_boost': {
+                'note': 'Image analysis provides supporting evidence for diagnosis ranking',
+                'confidence_modifier': '+' + str(
+                    min(pathology_info.get('primary_pathology', {}).get('confidence', 0) * 10, 15)
+                ) + '%'
+            }
+        }
+        
+        logger.info(f"Image evidence integrated: {integration_result['image_evidence']['primary_pathology']}")
+        return integration_result
+        
+    except Exception as e:
+        logger.error(f"Error integrating image evidence: {e}")
+        return {'error': str(e), 'status': 'error'}

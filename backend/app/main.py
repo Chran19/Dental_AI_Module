@@ -17,6 +17,7 @@ from app.routes.diagnosis import router as diagnosis_router
 from app.routes.investigation import router as investigation_router
 from app.routes.treatment import router as treatment_router
 from app.routes.explainability import router as explainability_router
+from app.routes.image_analysis import router as image_analysis_router
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
@@ -130,6 +131,7 @@ app.include_router(diagnosis_router)
 app.include_router(investigation_router)
 app.include_router(treatment_router)
 app.include_router(explainability_router)
+app.include_router(image_analysis_router)
 
 
 # ─── Health Check ────────────────────────────────────────────────────────────
