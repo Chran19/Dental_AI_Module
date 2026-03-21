@@ -4,6 +4,19 @@ interface RequestOptions extends RequestInit {
   withAuth?: boolean;
 }
 
+function formatErrorMessage(data: any): string {
+  if (!data) return 'Unknown error';
+  if (typeof data === 'string') return data;
+  if (data.message) return data.message;
+  if (data.detail) return data.detail;
+  if (data.error) return data.error;
+  if (data.errors && Array.isArray(data.errors)) {
+    return data.errors.map((e: any) => e.msg || e.message || e).join('; ');
+  }
+  // For plain objects, convert to JSON for inspection
+  return JSON.stringify(data);
+}
+
 export async function fetchAPI(endpoint: string, options: RequestOptions = {}) {
   const { withAuth = true, ...init } = options;
   
@@ -17,9 +30,16 @@ export async function fetchAPI(endpoint: string, options: RequestOptions = {}) {
   }
 
   const fullUrl = `${API_URL}${endpoint}`;
-  console.log(`[API] ${init.method || 'GET'} ${fullUrl}`, {
+  const method = init.method || 'GET';
+  console.log(`[API] ${method} ${fullUrl}`, {
     headers: Object.fromEntries(headers),
-    body: init.body ? (typeof init.body === 'string' ? JSON.parse(init.body) : init.body) : undefined
+    body: init.body ? (typeof init.body === 'string' ? (() => {
+      try {
+        return JSON.parse(init.body as string);
+      } catch {
+        return init.body;
+      }
+    })() : init.body) : undefined
   });
 
   try {
@@ -31,6 +51,7 @@ export async function fetchAPI(endpoint: string, options: RequestOptions = {}) {
     if (response.status === 401) {
       localStorage.removeItem('token');
       window.location.href = '/login';
+      throw new Error('Unauthorized - redirecting to login');
     }
 
     let data;
@@ -44,14 +65,15 @@ export async function fetchAPI(endpoint: string, options: RequestOptions = {}) {
     console.log(`[API] Response ${response.status}:`, data);
 
     if (!response.ok) {
-      const errorMessage = data?.message || data?.detail || data || `API error: ${response.status}`;
-      console.error(`[API Error] ${endpoint}:`, errorMessage);
+      const errorMessage = formatErrorMessage(data) || `API error: ${response.status}`;
+      console.error(`[API Error] ${method} ${endpoint} (${response.status}):`, errorMessage);
       throw new Error(errorMessage);
     }
 
     return data;
   } catch (error) {
-    console.error(`[API Exception] ${endpoint}:`, error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`[API Exception] ${method} ${endpoint}:`, errorMsg, error);
     throw error;
   }
 }
@@ -189,25 +211,76 @@ export async function deletePatient(id: string) {
 
 // Clinical input endpoints
 export async function submitClinicalInput(data: any) {
-  // Convert simple form data to Module 1 schema
+  // Map form gender values to backend enum: 'Male', 'Female', 'Other'
+  const genderMap: Record<string, string> = {
+    'M': 'Male',
+    'F': 'Female',
+    'Male': 'Male',
+    'Female': 'Female',
+    'Other': 'Other',
+  };
+
+  // Map smoking status to backend enum: 'Non-Smoker', 'Former_Smoker', 'Current_Smoker'
+  const smokingMap: Record<string, string> = {
+    'Never': 'Non-Smoker',
+    'Former': 'Former_Smoker',
+    'Current': 'Current_Smoker',
+    'Non-Smoker': 'Non-Smoker',
+    'Former_Smoker': 'Former_Smoker',
+    'Current_Smoker': 'Current_Smoker',
+  };
+
+  // Valid symptom options from backend
+  const validSymptoms = [
+    'Toothache', 'Thermal_Sensitivity_Hot', 'Thermal_Sensitivity_Cold',
+    'Spontaneous_Pain', 'Pain_On_Biting', 'Referred_Pain', 'Swelling_Localized',
+    'Swelling_Diffuse', 'Swelling_Extraoral', 'Gum_Bleeding', 'Gum_Recession',
+    'Pus_Discharge', 'Tooth_Mobility', 'Tooth_Discoloration', 'Fractured_Tooth',
+    'Bad_Breath', 'Dry_Mouth', 'Difficulty_Chewing', 'Jaw_Pain', 'Jaw_Clicking',
+    'Limited_Mouth_Opening', 'Numbness_Tingling', 'Fistula_Sinus_Tract', 'Ulceration'
+  ];
+
+  // Map symptom inputs to valid backend values
+  const symptoms = data.symptoms ? 
+    (Array.isArray(data.symptoms) ? data.symptoms : [data.symptoms])
+      .map((s: string) => {
+        // If it's "Pain", map to "Toothache"
+        if (s.toLowerCase() === 'pain') return 'Toothache';
+        // If it already matches a valid symptom, use it
+        if (validSymptoms.includes(s)) return s;
+        // Try simple case-insensitive matching
+        const match = validSymptoms.find(v => v.toLowerCase() === s.toLowerCase());
+        return match || 'Toothache'; // Default to Toothache if not found
+      }) : ['Toothache'];
+
+  // Valid swelling grades
+  const swellingMap: Record<string, string> = {
+    'None': 'None',
+    'Mild': 'Mild',
+    'Moderate': 'Moderate',
+    'Severe': 'Severe',
+  };
+
+  // Convert simple form data to Module 1 schema with correct enum values  
   const payload = {
     patient_id: data.patient_id || "00000000-0000-0000-0000-000000000000",
     age: parseInt(data.age) || 45,
-    gender: data.gender || "M",
+    gender: genderMap[data.gender] || 'Male',
     systemic_conditions: data.systemic_conditions || [],
     allergies: data.allergies ? [data.allergies] : [],
     current_medications: data.medications ? [data.medications] : [],
-    bleeding_disorder: data.bleeding_disorder || false,
-    immunocompromised: data.immunocompromised || false,
-    smoking_status: data.smoking_status || "Never",
-    bisphosphonate_therapy: false,
-    radiation_therapy_head_neck: false,
+    bleeding_disorder: data.bleeding_disorder === true || data.bleeding_disorder === 'true',
+    immunocompromised: data.immunocompromised === true || data.immunocompromised === 'true',
+    smoking_status: smokingMap[data.smoking_status] || 'Non-Smoker',
+    bisphosphonate_therapy: data.bisphosphonate_therapy === true || data.bisphosphonate_therapy === 'true' || false,
+    radiation_therapy_head_neck: data.radiation_therapy_head_neck === true || data.radiation_therapy_head_neck === 'true' || false,
     chief_complaint: data.chief_complaint || "Dental concern",
-    symptoms: data.symptoms || ["Pain"],
+    symptoms: symptoms,
     symptom_duration_days: parseInt(data.symptom_duration_days) || 7,
-    pain_level: parseInt(data.pain_level) || 5,
-    swelling_grade: data.swelling_grade || "None",
-    fever_present: data.fever_present || false,
+    pain_level: Math.min(10, Math.max(0, parseInt(data.pain_level) || 5)), // Clamp to 0-10
+    swelling_grade: swellingMap[data.swelling_grade] || 'None',
+    fever_present: data.fever_present === true || data.fever_present === 'true',
+    temperature_celsius: data.temperature_celsius ? parseFloat(data.temperature_celsius) : undefined,
     tooth_site: data.tooth_site || "11",
     jaw_region: data.jaw_region || "Anterior_Maxilla",
     observations: data.observations || "",
@@ -276,7 +349,31 @@ export async function createDiagnosis(data: any) {
 
 // Risk engine endpoints
 export async function assessRisk(data: any) {
-  // Convert simple form data to Module 2 schema (expects Module 1 output)
+  // Use same enum mappings as clinical input
+  const genderMap: Record<string, string> = {
+    'M': 'Male', 'F': 'Female', 'Male': 'Male', 'Female': 'Female', 'Other': 'Other',
+  };
+  const smokingMap: Record<string, string> = {
+    'Never': 'Non-Smoker', 'Former': 'Former_Smoker', 'Current': 'Current_Smoker',
+    'Non-Smoker': 'Non-Smoker', 'Former_Smoker': 'Former_Smoker', 'Current_Smoker': 'Current_Smoker',
+  };
+  const validSymptoms = [
+    'Toothache', 'Thermal_Sensitivity_Hot', 'Thermal_Sensitivity_Cold',
+    'Spontaneous_Pain', 'Pain_On_Biting', 'Referred_Pain', 'Swelling_Localized',
+    'Swelling_Diffuse', 'Swelling_Extraoral', 'Gum_Bleeding', 'Gum_Recession',
+    'Pus_Discharge', 'Tooth_Mobility', 'Tooth_Discoloration', 'Fractured_Tooth',
+    'Bad_Breath', 'Dry_Mouth', 'Difficulty_Chewing', 'Jaw_Pain', 'Jaw_Clicking',
+    'Limited_Mouth_Opening', 'Numbness_Tingling', 'Fistula_Sinus_Tract', 'Ulceration'
+  ];
+  const symptoms = data.symptoms || data.risk_factors ? 
+    (Array.isArray(data.symptoms || data.risk_factors) ? (data.symptoms || data.risk_factors) : [data.symptoms || data.risk_factors])
+      .map((s: string) => {
+        if (s.toLowerCase() === 'pain') return 'Toothache';
+        const match = validSymptoms.find(v => v.toLowerCase() === s.toLowerCase());
+        return match || 'Toothache';
+      }) : ['Toothache'];
+
+  // Convert form data to Module 2 schema with correct enums
   const payload = {
     module: "M1_Clinical_Input",
     version: "1.0",
@@ -286,31 +383,31 @@ export async function assessRisk(data: any) {
     doctor_id: "00000000-0000-0000-0000-000000000010",
     demographics: {
       age: parseInt(data.age) || 45,
-      gender: data.gender || "M",
-      weight_kg: 70,
+      gender: genderMap[data.gender] || 'Male',
+      weight_kg: parseInt(data.weight) || 70,
     },
     medical_history: {
       systemic_conditions: data.systemic_conditions || [],
       allergies: data.allergies ? [data.allergies] : [],
       current_medications: data.medications ? [data.medications] : [],
-      bleeding_disorder: false,
-      immunocompromised: false,
-      smoking_status: data.smoking_status || "Never",
+      bleeding_disorder: data.bleeding_disorder === true || data.bleeding_disorder === 'true',
+      immunocompromised: data.immunocompromised === true || data.immunocompromised === 'true',
+      smoking_status: smokingMap[data.smoking_status] || 'Non-Smoker',
     },
     chief_complaint: {
-      text: data.chief_complaint || "Risk assessment",
-      symptoms: data.symbols || ["Pain"],
+      text: data.chief_complaint || data.risk_factors || "Risk assessment",
+      symptoms: symptoms,
       duration_days: parseInt(data.symptom_duration_days) || 7,
     },
     clinical_assessment: {
-      pain_level: parseInt(data.pain_level) || 5,
+      pain_level: Math.min(10, Math.max(0, parseInt(data.pain_level) || 5)),
       swelling_grade: data.swelling_grade || "None",
-      fever_present: false,
+      fever_present: data.fever_present === true || data.fever_present === 'true',
     },
     site_assessment: {
       tooth_site: data.tooth_site || "11",
       jaw_region: data.jaw_region || "Anterior_Maxilla",
-      bone_height_mm: 15,
+      bone_height_mm: parseInt(data.bone_height) || 15,
     },
     computed_flags: {
       requires_imaging: true,
