@@ -35,7 +35,7 @@ def check_dataset():
     dataset_root = Path('backend/ml/datasets/dental_images')
     
     if not dataset_root.exists():
-        logger.error(f"❌ Dataset not found at {dataset_root}")
+        logger.error(f"[FAIL] Dataset not found at {dataset_root}")
         return False
     
     required_files = {
@@ -53,7 +53,7 @@ def check_dataset():
         else:
             exists = path.is_file()
         
-        status = "✓" if exists else "❌"
+        status = "[OK]" if exists else "[FAIL]"
         print(f"{status} {item}")
         
         if not exists:
@@ -63,12 +63,12 @@ def check_dataset():
     # Count images
     import pandas as pd
     labels_df = pd.read_csv(dataset_root / 'labels.csv')
-    print(f"\n✓ Total images: {len(labels_df)}")
+    print(f"\n[OK] Total images: {len(labels_df)}")
     print(f"  - Train: {len(open(dataset_root / 'train_split.txt').readlines())}")
     print(f"  - Val: {len(open(dataset_root / 'val_split.txt').readlines())}")
     print(f"  - Test: {len(open(dataset_root / 'test_split.txt').readlines())}")
     
-    print("\n✅ Dataset verification passed!")
+    print("\n[OK] Dataset verification passed!")
     return True
 
 
@@ -87,15 +87,15 @@ def check_dependencies():
     for package, name in required_packages.items():
         try:
             __import__(package)
-            print(f"✓ {name}")
+            print(f"[OK] {name}")
         except ImportError:
-            print(f"❌ {name} - not installed")
+            print(f"[FAIL] {name} - not installed")
             all_available = False
     
     if all_available:
-        print("\n✅ All dependencies available!")
+        print("\n[OK] All dependencies available!")
     else:
-        logger.warning("⚠️ Some dependencies missing. Install with: pip install torch pandas numpy scikit-learn")
+        logger.warning("[WARN] Some dependencies missing. Install with: pip install torch pandas numpy scikit-learn")
     
     return all_available
 
@@ -106,14 +106,14 @@ def check_gpu():
     
     if torch.cuda.is_available():
         device_count = torch.cuda.device_count()
-        print(f"✓ GPU available")
+        print(f"[OK] GPU available")
         for i in range(device_count):
             props = torch.cuda.get_device_properties(i)
             print(f"   Device {i}: {props.name}")
-        print(f"✓ Device: CUDA (GPU acceleration enabled)")
+        print(f"[OK] Device: CUDA (GPU acceleration enabled)")
     else:
-        print(f"⚠️  No GPU found - will use CPU (slower)")
-        print(f"✓ Device: CPU")
+        print(f"[WARN] No GPU found - will use CPU (slower)")
+        print(f"[OK] Device: CPU")
     
     return torch.cuda.is_available()
 
@@ -161,7 +161,7 @@ def train_model(epochs: int = 20, batch_size: int = 16):
         
         model, history, test_results = train_phase4_model(config)
         
-        print("\n✅ Training completed successfully!")
+        print("\n[OK] Training completed successfully!")
         print(f"\nTest Results:")
         print(f"  Accuracy:  {test_results['accuracy']:.4f}")
         print(f"  Precision: {test_results['precision']:.4f}")
@@ -171,7 +171,7 @@ def train_model(epochs: int = 20, batch_size: int = 16):
         return True
         
     except Exception as e:
-        logger.error(f"❌ Training failed: {e}")
+        logger.error(f"[FAIL] Training failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -190,14 +190,14 @@ def evaluate_model():
             dataset_root='backend/ml/datasets/dental_images'
         )
         
-        print("\n✅ Evaluation completed successfully!")
+        print("\n[OK] Evaluation completed successfully!")
         return True
         
     except FileNotFoundError as e:
-        logger.error(f"❌ Model not found. Please train the model first.")
+        logger.error(f"[FAIL] Model not found. Please train the model first.")
         return False
     except Exception as e:
-        logger.error(f"❌ Evaluation failed: {e}")
+        logger.error(f"[FAIL] Evaluation failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -216,13 +216,13 @@ def show_status():
     }
     
     for item, status in checklist.items():
-        icon = "✓" if status else "○"
+        icon = "[Y]" if status else "[N]"
         print(f"{icon} {item}")
     
     if checklist['Model (trained)']:
-        print(f"\n✅ Model available - ready for inference!")
+        print(f"\n[OK] Model available - ready for inference!")
     else:
-        print(f"\n⏳ Model needs to be trained")
+        print(f"\n[WAIT] Model needs to be trained")
 
 
 def main():
@@ -319,13 +319,13 @@ Examples:
         if args.status:
             show_status()
         
-        print_banner("✅ PHASE 4 WORKFLOW COMPLETE")
+        print_banner("[OK] PHASE 4 WORKFLOW COMPLETE")
         
     except KeyboardInterrupt:
-        logger.info("\n⚠️  Workflow interrupted by user")
+        logger.info("\n[WARN] Workflow interrupted by user")
         sys.exit(1)
     except Exception as e:
-        logger.error(f"\n❌ Unexpected error: {e}")
+        logger.error(f"\n[FAIL] Unexpected error: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

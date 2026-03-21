@@ -86,7 +86,7 @@ class PathologyDetector:
             'severity_level': self._get_severity_level(top_pathology_id, severity),
             'model_confidence': float(confidence),
             'all_pathologies': self._get_all_pathologies(pathology_probs),
-            'is_abnormal': top_pathology_id != 0,  # 0 is 'Normal'
+            'is_abnormal': bool(top_pathology_id != 0),  # 0 is 'Normal'
             'requires_intervention': self._assess_intervention_need(
                 top_pathology_id, severity, confidence
             )

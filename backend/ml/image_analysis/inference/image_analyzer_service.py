@@ -42,14 +42,22 @@ class ImageAnalyzerService:
         self.bone_analyzer = BoneAnalyzer()
         
         # Load CNN model
-        if model_path and Path(model_path).exists():
-            self.model = create_dental_cnn_model(device=device, pretrained=False)
-            self.model.load_model(model_path, device=device)
-            logger.info(f"Loaded trained model from {model_path}")
+        default_model_path = Path(__file__).parent.parent.parent.parent / 'models' / 'dental_cnn_model_phase4.pth'
+        model_path = model_path or str(default_model_path)
+        
+        if Path(model_path).exists():
+            try:
+                self.model = create_dental_cnn_model(device=device, pretrained=False)
+                checkpoint = torch.load(model_path, map_location=device)
+                self.model.load_state_dict(checkpoint['model_state_dict'] if isinstance(checkpoint, dict) else checkpoint)
+                self.model.to(device)
+                logger.info(f"✅ Loaded trained model from {model_path}")
+            except Exception as e:
+                logger.error(f"Failed to load model: {e}. Using ImageNet weights.")
+                self.model = create_dental_cnn_model(device=device, pretrained=True)
         else:
-            # Create untrained model for testing
+            logger.warning(f"Model not found at {model_path}. Using ImageNet pretrained weights.")
             self.model = create_dental_cnn_model(device=device, pretrained=True)
-            logger.warning("Using ImageNet pretrained weights (not trained on dental data)")
         
         # Initialize pathology detector
         self.pathology_detector = PathologyDetector(self.model, device=device)
@@ -86,7 +94,10 @@ class ImageAnalyzerService:
         # 5. Analyze bone
         bone_results = self.bone_analyzer.analyze_bone_loss(processed_image)
         
-        # 6. Generate clinical summary
+        # 6. Generate annotated image
+        annotated_img, img_base64 = self.generate_annotated_image(processed_image, pathology_results)
+        
+        # 7. Generate clinical summary
         clinical_summary = self._generate_clinical_summary(pathology_results, bone_results)
         
         return {
@@ -96,6 +107,7 @@ class ImageAnalyzerService:
             'pathology_analysis': pathology_results,
             'bone_analysis': bone_results,
             'clinical_summary': clinical_summary,
+            'annotated_image_base64': img_base64,
             'recommendations': self._generate_recommendations(
                 pathology_results, bone_results
             )
@@ -248,6 +260,66 @@ class ImageAnalyzerService:
             'abnormal_cases': len([img for img in images 
                                   if img['pathology_analysis']['is_abnormal'] == True])
         }
+    
+    def generate_annotated_image(self, image_array: np.ndarray, 
+                                pathology_results: Dict) -> Tuple[np.ndarray, str]:
+        """
+        Generate annotated radiograph with detected pathologies marked
+        
+        Args:
+            image_array: Preprocessed image (512, 512, 3) float32
+            pathology_results: Detection results from pathology detector
+            
+        Returns:
+            Tuple of (annotated_image_array, base64_string)
+        """
+        import cv2
+        import base64
+        from io import BytesIO
+        from PIL import Image
+        
+        # Convert to uint8 for annotation
+        img_uint8 = (image_array * 255).astype(np.uint8)
+        img_bgr = cv2.cvtColor(img_uint8, cv2.COLOR_RGB2BGR)
+        
+        # Add pathology information as text overlay
+        text_y = 30
+        primary_path = pathology_results.get('primary_pathology', {})
+        
+        # Pathology name
+        pathology_name = primary_path.get('name', 'Unknown')
+        confidence = primary_path.get('confidence', 0)
+        cv2.putText(img_bgr, f"Pathology: {pathology_name} ({confidence:.1%})",
+                   (10, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+        
+        # Severity score
+        severity = primary_path.get('severity_score', 0)
+        text_y += 30
+        cv2.putText(img_bgr, f"Severity: {severity:.1f}/10",
+                   (10, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
+        
+        # Region
+        region = pathology_results.get('tooth_region', 'Unknown')
+        text_y += 30
+        cv2.putText(img_bgr, f"Region: {region}",
+                   (10, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
+        
+        # Interventional status
+        intervention = pathology_results.get('requires_intervention', {})
+        if intervention.get('needed'):
+            text_y += 30
+            urgency_color = (0, 0, 255) if intervention.get('urgency') == 'EMERGENCY' else (0, 165, 255)
+            cv2.putText(img_bgr, f"⚠️ {intervention.get('urgency', 'URGENT')}",
+                       (10, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, urgency_color, 2)
+        
+        # Draw border around image
+        cv2.rectangle(img_bgr, (5, 5), (507, 507), (0, 255, 0), 2)
+        
+        # Convert to base64
+        _, buffer = cv2.imencode('.png', img_bgr)
+        img_base64 = base64.b64encode(buffer).decode('utf-8')
+        
+        return img_bgr, img_base64
     
     def _error_response(self, error_msg: str) -> Dict:
         """Generate error response"""

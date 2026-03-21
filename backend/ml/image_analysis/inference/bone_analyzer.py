@@ -138,15 +138,11 @@ class BoneAnalyzer:
                                minLineLength=50, maxLineGap=10)
         
         # Assess cortication quality
-        if lines is not None and len(lines) > 3:
-            cortication_present = True
-            cortication_quality = 'Well-defined'
-        else:
-            cortication_present = False
-            cortication_quality = 'Ill-defined or Absent'
+        cortication_present = bool(lines is not None and len(lines) > 3)
+        cortication_quality = 'Well-defined' if cortication_present else 'Ill-defined or Absent'
         
         return {
-            'present': bool(cortication_present),
+            'present': cortication_present,
             'quality': cortication_quality,
             'assessment': 'Normal lamina dura visible' if cortication_present 
                          else 'Lamina dura not clearly visible - possible pathology'

@@ -132,4 +132,8 @@ coverage/
 # Ignore compiled files from C extensions
 *.pyd
 
+# Large datasets (ML/Dental images)
+backend/ml/datasets/
+backend/ml/datasets/dental_images/raw_images/
+
 # End of file
