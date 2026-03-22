@@ -10,6 +10,7 @@ export default function ClinicalPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [response, setResponse] = useState<any>(null);
   const [formData, setFormData] = useState({
     patient_id: "550e8400-e29b-41d4-a716-446655440000",
     age: "45",
@@ -48,17 +49,21 @@ export default function ClinicalPage() {
     setLoading(true);
     setError("");
     setSuccess("");
+    setResponse(null);
 
     try {
-      await submitClinicalInput(formData);
+      const result = await submitClinicalInput(formData);
+      console.log("[Clinical UI] Success:", result);
+      setResponse(result);
       setSuccess(
-        "Clinical input saved successfully! The data has been validated and sent to the backend.",
+        "✓ Clinical input processed successfully! Data sent to backend.",
       );
+      // Reset form after success
       setFormData({
-        patient_id: "",
+        patient_id: "550e8400-e29b-41d4-a716-446655440000",
         age: "45",
         gender: "Male",
-        chief_complaint: "",
+        chief_complaint: "Dental sensitivity",
         symptoms: ["Toothache"],
         symptom_duration_days: "7",
         pain_level: "5",
@@ -73,7 +78,9 @@ export default function ClinicalPage() {
         jaw_region: "Anterior_Maxilla",
       });
     } catch (err: any) {
+      console.error("[Clinical UI] Error:", err);
       setError(err.message || "Failed to save clinical input");
+      setResponse(null);
     } finally {
       setLoading(false);
     }
@@ -373,6 +380,17 @@ export default function ClinicalPage() {
             {success && (
               <div className="rounded-lg bg-green-50 p-4 text-green-700 border border-green-200">
                 {success}
+              </div>
+            )}
+
+            {response && (
+              <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-2">
+                  Backend Response:
+                </h4>
+                <pre className="bg-white p-3 rounded text-sm overflow-auto max-h-96 text-gray-800 border border-blue-100">
+                  {JSON.stringify(response, null, 2)}
+                </pre>
               </div>
             )}
 

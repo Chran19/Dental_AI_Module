@@ -98,6 +98,19 @@ export async function logout() {
 
 // Image analysis endpoints
 export async function uploadImage(file: File) {
+  // Validate file size (max 10MB for single file)
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  if (file.size > MAX_FILE_SIZE) {
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+    throw new Error(`File is too large (${sizeMB}MB). Maximum allowed size is 10MB.`);
+  }
+
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/tiff', 'image/x-tiff', 'image/dicom'];
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error(`File type ${file.type} not supported. Please upload JPG, PNG, TIFF, or DICOM images.`);
+  }
+
   const formData = new FormData();
   formData.append('file', file);
 
@@ -287,20 +300,42 @@ export async function submitClinicalInput(data: any) {
     treatment_plan: data.treatment_plan || "",
   };
   
-  console.log('[Clinical] Submitting with payload:', payload);
+  // Helper to remove undefined values from objects
+  const cleanObject = (obj: any): any => {
+    if (obj === null || obj === undefined) return undefined;
+    if (typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.filter(v => v !== undefined).map(cleanObject);
+    
+    const cleaned: any = {};
+    for (const key in obj) {
+      const value = obj[key];
+      if (value !== undefined && value !== null) {
+        cleaned[key] = cleanObject(value);
+      }
+    }
+    return cleaned;
+  };
+  
+  const cleanedPayload = cleanObject(payload);
+  
+  console.log('[Clinical] Form data received:', JSON.stringify(data, null, 2));
+  console.log('[Clinical] Submitting cleaned payload:', JSON.stringify(cleanedPayload, null, 2));
   
   try {
-    return await fetchAPI('/api/clinical-input/validate', {
+    const result = await fetchAPI('/api/clinical-input/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(cleanedPayload),
     });
+    console.log('[Clinical] Validation successful:', result);
+    return result;
   } catch (err) {
-    console.log('[API] Clinical input fallback:', err);
+    console.error('[Clinical] Validation error:', err);
+    console.log('[API] Using clinical input fallback data');
     return {
       module: "M1_Clinical_Input",
       status: "validated",
-      chief_complaint: payload.chief_complaint,
+      chief_complaint: cleanedPayload.chief_complaint,
       warnings: []
     };
   }
@@ -373,7 +408,7 @@ export async function assessRisk(data: any) {
         return match || 'Toothache';
       }) : ['Toothache'];
 
-  // Convert form data to Module 2 schema with correct enums
+  // Convert form data to Module 1 Clinical Input schema with all required fields
   const payload = {
     module: "M1_Clinical_Input",
     version: "1.0",
@@ -387,48 +422,91 @@ export async function assessRisk(data: any) {
       weight_kg: parseInt(data.weight) || 70,
     },
     medical_history: {
-      systemic_conditions: data.systemic_conditions || [],
+      systemic_conditions: data.systemic_conditions || ["None"],
       allergies: data.allergies ? [data.allergies] : [],
       current_medications: data.medications ? [data.medications] : [],
       bleeding_disorder: data.bleeding_disorder === true || data.bleeding_disorder === 'true',
       immunocompromised: data.immunocompromised === true || data.immunocompromised === 'true',
       smoking_status: smokingMap[data.smoking_status] || 'Non-Smoker',
+      bisphosphonate_therapy: data.bisphosphonate_therapy === true || data.bisphosphonate_therapy === 'true',
+      radiation_therapy_head_neck: data.radiation_therapy_head_neck === true || data.radiation_therapy_head_neck === 'true',
     },
     chief_complaint: {
-      text: data.chief_complaint || data.risk_factors || "Risk assessment",
+      description: data.chief_complaint || data.risk_factors || "Risk assessment",
       symptoms: symptoms,
       duration_days: parseInt(data.symptom_duration_days) || 7,
+      onset: data.symptom_onset || "Gradual",
     },
     clinical_assessment: {
       pain_level: Math.min(10, Math.max(0, parseInt(data.pain_level) || 5)),
       swelling_grade: data.swelling_grade || "None",
-      fever_present: data.fever_present === true || data.fever_present === 'true',
+      fever: {
+        present: data.fever_present === true || data.fever_present === 'true',
+        temperature_celsius: data.temperature ? parseFloat(data.temperature) : undefined,
+      },
+      lymphadenopathy: (data.lymphadenopathy === true || data.lymphadenopathy === 'true') ? true : undefined,
+      tooth_mobility_grade: data.tooth_mobility_grade || undefined,
+      percussion_test: data.percussion_test || undefined,
+      vitality_test: data.vitality_test || undefined,
+      probing_depth_mm: data.probing_depth_mm ? parseFloat(data.probing_depth_mm) : undefined,
     },
     site_assessment: {
       tooth_site: data.tooth_site || "11",
       jaw_region: data.jaw_region || "Anterior_Maxilla",
-      bone_height_mm: parseInt(data.bone_height) || 15,
+      bone_height_mm: data.bone_height ? parseFloat(data.bone_height) : 15,
+      bone_width_mm: data.bone_width ? parseFloat(data.bone_width) : undefined,
+      bone_density: data.bone_density || undefined,
+      adjacent_teeth_status: data.adjacent_teeth_status || undefined,
+      sinus_proximity_mm: data.sinus_proximity ? parseFloat(data.sinus_proximity) : undefined,
+      nerve_proximity_mm: data.nerve_proximity ? parseFloat(data.nerve_proximity) : undefined,
     },
     computed_flags: {
-      requires_imaging: true,
-      contraindications_detected: false,
+      urgency_flag: data.urgency_flag || "Medium",
+      bisphosphonate_risk: data.bisphosphonate_therapy === true || data.bisphosphonate_therapy === 'true',
+      radiation_risk: data.radiation_therapy_head_neck === true || data.radiation_therapy_head_neck === 'true',
+      age_contraindication: (parseInt(data.age) || 45) > 85,
+      implant_data_present: true,
     },
     validation_status: {
       is_valid: true,
+      errors: [],
       warnings: [],
     },
   };
   
-  console.log('[Risk] Submitting risk assessment:', payload);
+  console.log('[Risk] Form data received:', JSON.stringify(data, null, 2));
+  
+  // Helper to remove undefined values from objects
+  const cleanObject = (obj: any): any => {
+    if (obj === null || obj === undefined) return undefined;
+    if (typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.filter(v => v !== undefined).map(cleanObject);
+    
+    const cleaned: any = {};
+    for (const key in obj) {
+      const value = obj[key];
+      if (value !== undefined && value !== null) {
+        cleaned[key] = cleanObject(value);
+      }
+    }
+    return cleaned;
+  };
+  
+  const cleanedPayload = cleanObject(payload);
+  
+  console.log('[Risk] Submitting risk assessment payload:', JSON.stringify(cleanedPayload, null, 2));
   
   try {
-    return await fetchAPI('/api/risk-engine/assess', {
+    const result = await fetchAPI('/api/risk-engine/assess', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(cleanedPayload),
     });
+    console.log('[Risk] Assessment response:', result);
+    return result;
   } catch (err) {
-    console.log('[API] Risk assessment fallback:', err);
+    console.error('[API] Risk assessment error:', err);
+    console.log('[API] Using fallback mock data');
     return {
       module: "M2_Risk_Engine",
       risk_level: "Medium",

@@ -96,13 +96,20 @@ async def validation_exception_handler(
             "message": error.get("msg", "Validation error"),
         })
 
-    return JSONResponse(
+    response = JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "status": "error",
             "errors": errors,
         },
     )
+    # Add CORS headers for preflight requests
+    origin = request.headers.get("origin")
+    if origin and "*" in settings.CORS_ORIGINS or origin in settings.CORS_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin if origin in settings.CORS_ORIGINS else "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
 
 
 @app.exception_handler(Exception)
@@ -112,24 +119,45 @@ async def general_exception_handler(
 ) -> JSONResponse:
     """Catch-all handler — returns a generic 500 per §10."""
     logger.exception("Unhandled exception: %s", str(exc))
-    return JSONResponse(
+    response = JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"message": "Internal server error."},
     )
+    # Add CORS headers
+    origin = request.headers.get("origin")
+    if origin and ("*" in settings.CORS_ORIGINS or origin in settings.CORS_ORIGINS):
+        response.headers["Access-Control-Allow-Origin"] = origin if origin in settings.CORS_ORIGINS else "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
 
 
 # ─── Request Size Limiting Middleware ────────────────────────────────────────
 
 @app.middleware("http")
 async def limit_request_size(request: Request, call_next):
-    """Module 1 §10: Reject payloads larger than MAX_REQUEST_BODY_MB."""
+    """
+    Limit request payload size.
+    - File uploads to image-analysis: MAX_UPLOAD_SIZE_MB
+    - Regular requests: MAX_REQUEST_BODY_MB
+    """
     content_length = request.headers.get("content-length")
-    max_bytes = settings.MAX_REQUEST_BODY_MB * 1024 * 1024
-
-    if content_length and int(content_length) > max_bytes:
+    if not content_length:
+        return await call_next(request)
+    
+    content_length_int = int(content_length)
+    
+    # Check if this is a file upload request
+    if request.url.path == "/image-analysis/upload":
+        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    else:
+        max_bytes = settings.MAX_REQUEST_BODY_MB * 1024 * 1024
+    
+    if content_length_int > max_bytes:
+        max_mb = max_bytes // (1024 * 1024)
         return JSONResponse(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            content={"message": "Request payload too large."},
+            content={"detail": f"Request payload too large. Maximum: {max_mb}MB"},
         )
     return await call_next(request)
 

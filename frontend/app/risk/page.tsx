@@ -12,6 +12,7 @@ export default function RiskPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [response, setResponse] = useState<any>(null);
   const [formData, setFormData] = useState({
     patient_id: "550e8400-e29b-41d4-a716-446655440000",
     age: "45",
@@ -25,6 +26,8 @@ export default function RiskPage() {
     jaw_region: "Anterior_Maxilla",
     bleeding_disorder: false,
     immunocompromised: false,
+    bisphosphonate_therapy: false,
+    radiation_therapy_head_neck: false,
   });
 
   const symptomOptions = [
@@ -58,16 +61,17 @@ export default function RiskPage() {
 
     try {
       const result = await assessRisk(formData);
-      setSuccess("Risk assessment completed successfully!");
-      console.log("[Risk] Assessment result:", result);
+      console.log("[Risk UI] Success:", result);
+      setResponse(result);
+      setSuccess("✓ Risk assessment completed successfully!");
 
       // Reset form
       setFormData({
-        patient_id: "",
+        patient_id: "550e8400-e29b-41d4-a716-446655440000",
         age: "45",
         gender: "Male",
         smoking_status: "Non-Smoker",
-        chief_complaint: "",
+        chief_complaint: "Evaluate implant candidacy",
         symptoms: ["Pain_On_Biting"],
         pain_level: "5",
         swelling_grade: "None",
@@ -75,9 +79,12 @@ export default function RiskPage() {
         jaw_region: "Anterior_Maxilla",
         bleeding_disorder: false,
         immunocompromised: false,
+        bisphosphonate_therapy: false,
+        radiation_therapy_head_neck: false,
       });
     } catch (err: any) {
       setError(err.message || "Assessment failed");
+      setResponse(null);
     } finally {
       setLoading(false);
     }
@@ -300,6 +307,34 @@ export default function RiskPage() {
                   />
                   <span>Immunocompromised</span>
                 </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.bisphosphonate_therapy}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        bisphosphonate_therapy: e.target.checked,
+                      })
+                    }
+                    className="mr-3"
+                  />
+                  <span>Bisphosphonate Therapy</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.radiation_therapy_head_neck}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        radiation_therapy_head_neck: e.target.checked,
+                      })
+                    }
+                    className="mr-3"
+                  />
+                  <span>Radiation Therapy (Head/Neck)</span>
+                </label>
               </div>
             </div>
 
@@ -315,6 +350,17 @@ export default function RiskPage() {
             {success && (
               <div className="rounded-lg bg-green-50 p-4 text-green-700 border border-green-200">
                 {success}
+              </div>
+            )}
+
+            {response && (
+              <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-2">
+                  Backend Response:
+                </h4>
+                <pre className="bg-white p-3 rounded text-sm overflow-auto max-h-96 text-gray-800 border border-blue-100">
+                  {JSON.stringify(response, null, 2)}
+                </pre>
               </div>
             )}
 
