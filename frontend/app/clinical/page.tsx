@@ -21,6 +21,7 @@ export default function ClinicalPage() {
     pain_level: "5",
     swelling_grade: "None",
     smoking_status: "Non-Smoker",
+    systemic_conditions: ["None"],
     fever_present: false,
     bleeding_disorder: false,
     immunocompromised: false,
@@ -69,6 +70,7 @@ export default function ClinicalPage() {
         pain_level: "5",
         swelling_grade: "None",
         smoking_status: "Non-Smoker",
+        systemic_conditions: ["None"],
         fever_present: false,
         bleeding_disorder: false,
         immunocompromised: false,
@@ -294,6 +296,67 @@ export default function ClinicalPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Medical History
               </h3>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Systemic Conditions *
+              </label>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                {[
+                  "None",
+                  "Diabetes_Type1",
+                  "Diabetes_Type2",
+                  "Hypertension",
+                  "Cardiovascular_Disease",
+                  "Osteoporosis",
+                  "Rheumatoid_Arthritis",
+                  "HIV_AIDS",
+                  "Kidney_Disease",
+                  "Liver_Disease",
+                  "Thyroid_Disorder",
+                  "Asthma",
+                ].map((condition) => (
+                  <label key={condition} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={(formData.systemic_conditions || []).includes(
+                        condition,
+                      )}
+                      onChange={(e) => {
+                        const current = formData.systemic_conditions || [];
+                        if (condition === "None") {
+                          // If "None" is selected, clear others
+                          if (e.target.checked) {
+                            setFormData({
+                              ...formData,
+                              systemic_conditions: ["None"],
+                            });
+                          }
+                        } else {
+                          // If any other condition is selected, remove "None"
+                          let updated = e.target.checked
+                            ? [
+                                ...current.filter((c) => c !== "None"),
+                                condition,
+                              ]
+                            : current.filter((c) => c !== condition);
+                          // If all are unchecked, default to "None"
+                          if (updated.length === 0) {
+                            updated = ["None"];
+                          }
+                          setFormData({
+                            ...formData,
+                            systemic_conditions: updated,
+                          });
+                        }
+                      }}
+                      className="mr-2"
+                    />
+                    <span className="text-sm">
+                      {condition.replace(/_/g, " ")}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
               <div className="space-y-3">
                 <label className="flex items-center">
                   <input

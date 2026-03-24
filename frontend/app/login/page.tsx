@@ -1,29 +1,29 @@
-"use client";
+'use client';
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
-import { login } from "@/lib/api";
-import { useAuth } from "@/app/providers";
+import { FormEvent, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { login } from '@/lib/api';
+import { useAuth } from '@/app/providers';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login: setAuth } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError('');
     setLoading(true);
 
     try {
       const data = await login(email, password);
       setAuth(data.access_token);
-      router.push("/dashboard");
+      router.push('/dashboard');
     } catch (err: any) {
-      setError(err.message || "Login failed");
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -34,9 +34,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="rounded-lg bg-white p-8 shadow-lg">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Chairside Companion
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">Chairside Companion</h1>
             <p className="mt-2 text-gray-600">Dental AI Analysis System</p>
           </div>
 
@@ -48,10 +46,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email Address
               </label>
               <input
@@ -66,10 +61,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
               <input
@@ -88,14 +80,13 @@ export default function LoginPage() {
               disabled={loading}
               className="mt-6 w-full rounded-lg bg-indigo-600 py-2 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
           <div className="mt-6 border-t pt-4">
             <p className="text-xs text-center text-gray-600">
-              <strong>Demo Credentials:</strong>
-              <br />
+              <strong>Demo Credentials:</strong><br/>
               test@example.com / testpass
             </p>
           </div>
