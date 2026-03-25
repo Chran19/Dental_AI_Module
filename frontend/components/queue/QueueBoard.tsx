@@ -1,0 +1,151 @@
+"use client";
+
+import { QueueItem } from "@/lib/types/queue";
+import {
+  Clock,
+  User,
+  ChevronRight,
+  Stethoscope,
+  AlertCircle,
+} from "lucide-react";
+import Link from "next/link";
+
+interface QueueBoardProps {
+  items: QueueItem[];
+  isLoading: boolean;
+  onStatusChange?: (id: string, status: QueueItem["status"]) => void;
+  role: "DOCTOR" | "RECEPTIONIST" | "ADMIN";
+}
+
+export default function QueueBoard({
+  items,
+  isLoading,
+  onStatusChange,
+  role,
+}: QueueBoardProps) {
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border-2 border-dashed border-slate-200 p-12 text-center">
+        <div className="mx-auto w-12 h-12 bg-slate-100 flex items-center justify-center rounded-full text-slate-400 mb-4">
+          <Clock size={24} />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800">Queue is empty</h3>
+        <p className="text-slate-500">
+          No patients are currently waiting for consultation.
+        </p>
+      </div>
+    );
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "EMERGENCY":
+        return "bg-red-100 text-red-700 border-red-200";
+      case "URGENT":
+        return "bg-orange-100 text-orange-700 border-orange-200";
+      default:
+        return "bg-blue-100 text-blue-700 border-blue-200";
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "WAITING":
+        return "bg-yellow-100 text-yellow-700";
+      case "IN_CONSULTATION":
+        return "bg-green-100 text-green-700";
+      default:
+        return "bg-slate-100 text-slate-600";
+    }
+  };
+
+  return (
+    <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
+      {items.map((item) => (
+        <div
+          key={item.id}
+          className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:border-blue-300 transition-all flex items-center justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                item.status === "IN_CONSULTATION"
+                  ? "bg-green-600 text-white animate-pulse"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              {item.patient_name.charAt(0)}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-slate-900">
+                  {item.patient_name}
+                </h4>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${getPriorityColor(item.priority)}`}
+                >
+                  {item.priority}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                  <Clock size={12} />
+                  <span>
+                    {new Date(item.check_in_time).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <div
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getStatusBadge(item.status)}`}
+                >
+                  {item.status.replace("_", " ")}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {role === "DOCTOR" && item.status === "WAITING" && (
+              <button
+                onClick={() => onStatusChange?.(item.id, "IN_CONSULTATION")}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all"
+              >
+                <Stethoscope size={14} />
+                Call Patient
+              </button>
+            )}
+
+            {item.status === "IN_CONSULTATION" ? (
+              <Link
+                href={`/dashboard/clinical/active`}
+                className="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-all"
+              >
+                Go to Visit
+                <ChevronRight size={14} />
+              </Link>
+            ) : (
+              <Link
+                href={`/dashboard/patients/${item.patient_id}`}
+                className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+                title="View Record"
+              >
+                <User size={18} />
+              </Link>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
