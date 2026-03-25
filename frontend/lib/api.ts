@@ -279,7 +279,9 @@ export async function submitClinicalInput(data: any) {
     patient_id: data.patient_id || "00000000-0000-0000-0000-000000000000",
     age: parseInt(data.age) || 45,
     gender: genderMap[data.gender] || 'Male',
-    systemic_conditions: data.systemic_conditions || [],
+    systemic_conditions: data.systemic_conditions && data.systemic_conditions.length > 0 
+      ? data.systemic_conditions 
+      : ['None'], // Default to None if not specified
     allergies: data.allergies ? [data.allergies] : [],
     current_medications: data.medications ? [data.medications] : [],
     bleeding_disorder: data.bleeding_disorder === true || data.bleeding_disorder === 'true',
