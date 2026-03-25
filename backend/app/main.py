@@ -22,6 +22,7 @@ from app.routes.auth import router as auth_router
 from app.routes.patients import router as patients_router
 from app.routes.images import router as images_router
 from app.routes.implants import router as implants_router
+from app.routes.queue import router as queue_router
 
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -166,6 +167,7 @@ async def limit_request_size(request: Request, call_next):
 
 app.include_router(auth_router)
 app.include_router(patients_router)
+app.include_router(queue_router)
 app.include_router(images_router)
 app.include_router(implants_router)
 app.include_router(clinical_input_router)

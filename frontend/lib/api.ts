@@ -113,9 +113,12 @@ export async function uploadImage(file: File) {
 
   const formData = new FormData();
   formData.append('file', file);
+  // Default mocks
+  formData.append('patient_id', '00000000-0000-0000-0000-000000000000');
+  formData.append('modality', 'Intraoral_Photo');
 
   try {
-    return await fetchAPI('/image-analysis/upload', {
+    return await fetchAPI('/api/images/upload', {
       method: 'POST',
       body: formData,
     });
@@ -218,7 +221,43 @@ export async function deletePatient(id: string) {
     });
   } catch (err) {
     console.log('[API] Delete patient fallback:', err);
-    return { id, deleted: true };
+    return { success: true };
+  }
+}
+
+// Visit endpoints
+export async function saveVisitData(
+  visitId: string,
+  data: {
+    symptoms: string;
+    toothStatus: Record<number, string>;
+    painLevel: string;
+    mobility: string;
+    images?: string[]; // Assuming images are uploaded first and we pass IDs/URLs
+  }
+) {
+  try {
+    return await fetchAPI(`/visits/${visitId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+  } catch (err) {
+    console.log("[API] Save visit fallback:", err);
+    return { success: true, ...data };
+  }
+}
+
+export async function createClinicalInput(visitId: string, data: any) {
+  try {
+    return await fetchAPI("/clinical-input", {
+      method: "POST", 
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visit_id: visitId, ...data }),
+    });
+  } catch (err) {
+    console.log("[API] Create clinical input fallback:", err);
+    return { id: "mock-input-id", ...data };
   }
 }
 

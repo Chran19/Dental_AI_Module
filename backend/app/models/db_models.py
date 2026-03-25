@@ -38,9 +38,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(
-        SAEnum("Doctor", "Admin", name="user_role_enum"),
+        SAEnum("DOCTOR", "RECEPTIONIST", "ADMIN", name="user_role_enum"),
         nullable=False,
-        default="Doctor",
+        default="DOCTOR",
     )
     license_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -90,6 +90,7 @@ class Patient(Base):
     clinical_cases: Mapped[list["ClinicalCase"]] = relationship(back_populates="patient", lazy="selectin")
     images: Mapped[list["Image"]] = relationship(back_populates="patient", lazy="selectin")
     implant_plans: Mapped[list["ImplantPlan"]] = relationship(back_populates="patient", lazy="selectin")
+    queue_entries: Mapped[list["Queue"]] = relationship(back_populates="patient", lazy="selectin")
 
 
 # ═════════════════════════════════════════════════════════════════════════════════
@@ -302,4 +303,46 @@ class AuditLog(Base):
     details: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    )
+
+
+# ═════════════════════════════════════════════════════════════════════════════════
+#  QUEUE TABLE  (Patient Queue Management - Receptionist Module)
+# ═════════════════════════════════════════════════════════════════════════════════
+
+class Queue(Base):
+    __tablename__ = "queue"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("patients.id"), nullable=False, index=True
+    )
+    status: Mapped[str] = mapped_column(
+        SAEnum("Waiting", "In_Consultation", "Completed", "Cancelled", name="queue_status_enum"),
+        nullable=False,
+        default="Waiting",
+    )
+    check_in_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consultation_start_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consultation_end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    assigned_doctor_id: Mapped[uuid.UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    # Relationships
+    patient: Mapped["Patient"] = relationship(back_populates="queue_entries")
+    doctor: Mapped["User | None"] = relationship(
+        foreign_keys=[assigned_doctor_id],
+        lazy="selectin"
     )

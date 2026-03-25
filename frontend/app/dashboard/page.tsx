@@ -6,13 +6,19 @@ import { useEffect } from "react";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, logout, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, logout } = useAuth();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        router.push("/login");
+      } else if (user?.role === "RECEPTIONIST") {
+        router.push("/dashboard/receptionist");
+      } else {
+        router.push("/dashboard/doctor");
+      }
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, user, isLoading, router]);
 
   if (isLoading) {
     return (

@@ -79,16 +79,19 @@ class PatientService:
         return result.scalars().first()
 
     async def list_patients(
-        self, doctor_id: uuid.UUID, skip: int = 0, limit: int = 100
+        self, doctor_id: uuid.UUID = None, skip: int = 0, limit: int = 100
     ) -> List[Patient]:
-        """List all patients for a specific doctor."""
-        query = (
-            select(Patient)
-            .where(Patient.doctor_id == doctor_id)
-            .offset(skip)
-            .limit(limit)
-            .order_by(Patient.last_name, Patient.first_name)
-        )
+        """
+        List patients.
+        If doctor_id is provided: returns only that doctor's patients.
+        If doctor_id is None: returns all patients (for receptionists/admins).
+        """
+        query = select(Patient).offset(skip).limit(limit)
+        
+        if doctor_id:
+            query = query.where(Patient.doctor_id == doctor_id)
+        
+        query = query.order_by(Patient.last_name, Patient.first_name)
         result = await self.db.execute(query)
         return result.scalars().all()
 

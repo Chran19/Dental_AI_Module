@@ -10,6 +10,7 @@ class TokenData(BaseModel):
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+    role: str = "Doctor"
     first_name: str | None = None
     last_name: str | None = None
 

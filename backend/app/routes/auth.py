@@ -21,12 +21,24 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 TEST_CREDENTIALS = {
     "test@example.com": "testpass",
     "doctor@example.com": "doctorpass",
+    "receptionist@example.com": "receptionistpass",
+    "admin@example.com": "adminpass",
+}
+
+# User roles for test credentials
+TEST_CREDENTIAL_ROLES = {
+    "test@example.com": "DOCTOR",
+    "doctor@example.com": "DOCTOR",
+    "receptionist@example.com": "RECEPTIONIST",
+    "admin@example.com": "ADMIN",
 }
 
 # Generate deterministic UUIDs for test credentials
 TEST_CREDENTIAL_UUIDS = {
     "test@example.com": str(uuid.uuid5(uuid.NAMESPACE_DNS, "test@example.com")),
     "doctor@example.com": str(uuid.uuid5(uuid.NAMESPACE_DNS, "doctor@example.com")),
+    "receptionist@example.com": str(uuid.uuid5(uuid.NAMESPACE_DNS, "receptionist@example.com")),
+    "admin@example.com": str(uuid.uuid5(uuid.NAMESPACE_DNS, "admin@example.com")),
 }
 
 @router.post("/token", response_model=Token)
@@ -42,8 +54,9 @@ async def login_for_access_token(
             access_token_expires = timedelta(minutes=settings.JWT_EXPIRY_MINUTES)
             # Use deterministic UUID for test credentials
             user_uuid = TEST_CREDENTIAL_UUIDS.get(form_data.username, str(uuid.uuid4()))
+            user_role = TEST_CREDENTIAL_ROLES.get(form_data.username, "Doctor")
             access_token = AuthService.create_access_token(
-                data={"sub": user_uuid}, expires_delta=access_token_expires
+                data={"sub": user_uuid, "role": user_role}, expires_delta=access_token_expires
             )
             return {"access_token": access_token, "token_type": "bearer"}
     
@@ -62,7 +75,7 @@ async def login_for_access_token(
             if user and AuthService.verify_password(form_data.password, user.password_hash):
                 access_token_expires = timedelta(minutes=settings.JWT_EXPIRY_MINUTES)
                 access_token = AuthService.create_access_token(
-                    data={"sub": str(user.id)}, expires_delta=access_token_expires
+                    data={"sub": str(user.id), "role": user.role}, expires_delta=access_token_expires
                 )
                 return {"access_token": access_token, "token_type": "bearer"}
     except Exception:
@@ -96,7 +109,7 @@ async def signup(
     new_user = User(
         email=user_data.email,
         password_hash=hashed_password,
-        role="Doctor"
+        role=user_data.role
     )
     db.add(new_user)
     await db.commit()
@@ -104,6 +117,6 @@ async def signup(
     
     access_token_expires = timedelta(minutes=settings.JWT_EXPIRY_MINUTES)
     access_token = AuthService.create_access_token(
-        data={"sub": str(new_user.id)}, expires_delta=access_token_expires
+        data={"sub": str(new_user.id), "role": new_user.role}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
