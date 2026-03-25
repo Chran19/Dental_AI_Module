@@ -1,95 +1,52 @@
-'use client';
+"use client";
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { login } from '@/lib/api';
-import { useAuth } from '@/app/providers';
+import LoginForm from "@/components/login/LoginForm";
+import { Suspense } from "react";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { login: setAuth } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      const data = await login(email, password);
-      setAuth(data.access_token);
-      router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
-      <div className="w-full max-w-md">
-        <div className="rounded-lg bg-white p-8 shadow-lg">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Chairside Companion</h1>
-            <p className="mt-2 text-gray-600">Dental AI Analysis System</p>
-          </div>
-
-          {error && (
-            <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700 border border-red-200">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
-                placeholder="test@example.com"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="mt-6 w-full rounded-lg bg-indigo-600 py-2 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 transition"
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 px-4">
+      <div className="w-full max-w-lg">
+        <div className="mb-10 text-center">
+          <div className="inline-flex items-center justify-center p-3 mb-4 rounded-xl bg-blue-600 shadow-lg shadow-blue-200">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-
-          <div className="mt-6 border-t pt-4">
-            <p className="text-xs text-center text-gray-600">
-              <strong>Demo Credentials:</strong><br/>
-              test@example.com / testpass
-            </p>
+              <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2z"></path>
+              <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+              <path d="M16 12h.01"></path>
+              <path d="M8 12h.01"></path>
+              <path d="M12 8.5V12l2.5 2.5"></path>
+            </svg>
           </div>
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
+            ChairSide Companion
+          </h1>
+          <p className="mt-2 text-lg text-slate-500 font-medium">
+            AI-Powered Dental Intelligence
+          </p>
+        </div>
+
+        <Suspense
+          fallback={
+            <div className="flex h-64 w-full items-center justify-center bg-white rounded-xl">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+            </div>
+          }
+        >
+          <LoginForm />
+        </Suspense>
+
+        <div className="mt-12 text-center text-slate-400 text-sm">
+          &copy; {new Date().getFullYear()} ChairSide Companion. All rights
+          reserved.
         </div>
       </div>
     </div>
