@@ -10,7 +10,7 @@ interface AISuggestionBoxProps {
   isLoading: boolean;
   onApprove: (suggestion: Card) => void;
   onEdit: (suggestion: Card) => void;
-  onReject:(suggestion: Card) => void;
+  onReject: (suggestion: Card) => void;
 }
 
 export default function AISuggestionBox({
@@ -27,7 +27,9 @@ export default function AISuggestionBox({
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
           <h3 className="font-semibold text-slate-900">AI is analyzing...</h3>
         </div>
-        <p className="text-sm text-slate-600">Processing symptoms and generating recommendations</p>
+        <p className="text-sm text-slate-600">
+          Processing symptoms and generating recommendations
+        </p>
       </div>
     );
   }
@@ -55,7 +57,9 @@ export default function AISuggestionBox({
           <div className="flex items-start justify-between">
             <div>
               <h4 className="font-medium text-slate-900">{suggestion.name}</h4>
-              <p className="text-sm text-slate-600 mt-1">{suggestion.indication}</p>
+              <p className="text-sm text-slate-600 mt-1">
+                {suggestion.indication}
+              </p>
             </div>
             <Badge
               label={`${Math.round((suggestion.confidence || 0) * 100)}%`}
@@ -63,19 +67,25 @@ export default function AISuggestionBox({
             />
           </div>
 
-          {suggestion.contraindications && suggestion.contraindications.length > 0 && (
-            <div className="flex items-start gap-2 bg-red-50 p-3 rounded">
-              <AlertTriangle size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-900">⚠️ Contraindications</p>
-                <ul className="text-xs text-red-800 mt-1 space-y-1">
-                  {suggestion.contraindications.map((c, i) => (
-                    <li key={i}>• {c}</li>
-                  ))}
-                </ul>
+          {suggestion.contraindications &&
+            suggestion.contraindications.length > 0 && (
+              <div className="flex items-start gap-2 bg-red-50 p-3 rounded">
+                <AlertTriangle
+                  size={16}
+                  className="text-red-600 flex-shrink-0 mt-0.5"
+                />
+                <div>
+                  <p className="text-sm font-medium text-red-900">
+                    ⚠️ Contraindications
+                  </p>
+                  <ul className="text-xs text-red-800 mt-1 space-y-1">
+                    {suggestion.contraindications.map((c, i) => (
+                      <li key={i}>• {c}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
@@ -84,7 +94,9 @@ export default function AISuggestionBox({
             </div>
             <div>
               <p className="text-slate-600">Frequency</p>
-              <p className="font-medium text-slate-900">{suggestion.frequency}</p>
+              <p className="font-medium text-slate-900">
+                {suggestion.frequency}
+              </p>
             </div>
           </div>
 
@@ -96,10 +108,18 @@ export default function AISuggestionBox({
             >
               <CheckCircle size={16} /> Approve
             </Button>
-            <Button onClick={() => onEdit(suggestion)} variant="secondary" size="sm">
+            <Button
+              onClick={() => onEdit(suggestion)}
+              variant="secondary"
+              size="sm"
+            >
               Edit
             </Button>
-            <Button onClick={() => onReject(suggestion)} variant="secondary" size="sm">
+            <Button
+              onClick={() => onReject(suggestion)}
+              variant="secondary"
+              size="sm"
+            >
               Reject
             </Button>
           </div>

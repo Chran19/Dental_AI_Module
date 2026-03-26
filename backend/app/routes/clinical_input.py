@@ -29,7 +29,7 @@ from app.services.clinical_input_service import ClinicalInputService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/clinical-input", tags=["Clinical Input (Module 1)"])
+router = APIRouter(prefix="/clinical-input", tags=["Clinical Input (Module 1)"])
 
 # ─── Dependency: Service instance ────────────────────────────────────────────
 

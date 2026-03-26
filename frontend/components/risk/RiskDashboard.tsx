@@ -99,7 +99,10 @@ export default function RiskDashboard({ assessment }: RiskDashboardProps) {
             <Card key={idx}>
               <div className="flex items-start gap-3">
                 {factor.severity === "HIGH" ? (
-                  <AlertTriangle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle
+                    size={20}
+                    className="text-red-600 flex-shrink-0 mt-0.5"
+                  />
                 ) : (
                   <AlertCircle
                     size={20}
@@ -108,7 +111,9 @@ export default function RiskDashboard({ assessment }: RiskDashboardProps) {
                 )}
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-slate-900">{factor.name}</h4>
+                    <h4 className="font-medium text-slate-900">
+                      {factor.name}
+                    </h4>
                     <Badge
                       label={factor.severity}
                       variant={
@@ -121,18 +126,19 @@ export default function RiskDashboard({ assessment }: RiskDashboardProps) {
                       {factor.description}
                     </p>
                   )}
-                  {factor.recommendations && factor.recommendations.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-xs font-medium text-slate-700">
-                        Recommendations:
-                      </p>
-                      <ul className="text-xs text-slate-600 mt-1 space-y-1">
-                        {factor.recommendations.map((rec, i) => (
-                          <li key={i}>• {rec}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  {factor.recommendations &&
+                    factor.recommendations.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium text-slate-700">
+                          Recommendations:
+                        </p>
+                        <ul className="text-xs text-slate-600 mt-1 space-y-1">
+                          {factor.recommendations.map((rec, i) => (
+                            <li key={i}>• {rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                 </div>
               </div>
             </Card>

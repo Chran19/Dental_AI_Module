@@ -15,7 +15,7 @@ from app.models.db_models import Image, User
 from app.services.image_service import ImageService
 from app.schemas.images import ImageResponse, ImageModality
 
-router = APIRouter(prefix="/api/images", tags=["Medical Imaging Hub"])
+router = APIRouter(prefix="/images", tags=["Medical Imaging Hub"])
 
 def get_image_service(db: AsyncSession = Depends(get_db)) -> ImageService:
     return ImageService(db)

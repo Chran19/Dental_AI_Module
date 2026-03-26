@@ -20,7 +20,7 @@ from app.services.investigation_service import InvestigationService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/investigation", tags=["Investigation (Module 4)"])
+router = APIRouter(prefix="/investigation", tags=["Investigation (Module 4)"])
 
 
 # ─── Dependencies ────────────────────────────────────────────────────────────────

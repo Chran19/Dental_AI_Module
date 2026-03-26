@@ -13,7 +13,7 @@ from app.dependencies import get_current_doctor_id
 from app.schemas.implants import ImplantCreate, ImplantResponse, ImplantUpdate
 from app.services.implant_service import ImplantService
 
-router = APIRouter(prefix="/api/implants", tags=["Implant Tracker"])
+router = APIRouter(prefix="/implants", tags=["Implant Tracker"])
 
 @router.post("/", response_model=ImplantResponse, status_code=status.HTTP_201_CREATED)
 async def create_plan(

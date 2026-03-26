@@ -18,7 +18,7 @@ from app.services.explainability_service import ExplainabilityService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/explain", tags=["Module 6: Explainability"])
+router = APIRouter(prefix="/explainability", tags=["Module 6: Explainability"])
 
 
 @router.post("/generate", response_model=ExplanationReport)

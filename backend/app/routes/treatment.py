@@ -20,7 +20,7 @@ from app.services.treatment_service import TreatmentService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/treatment", tags=["Treatment (Module 5)"])
+router = APIRouter(prefix="/treatment", tags=["Treatment (Module 5)"])
 
 
 # ─── Dependencies ────────────────────────────────────────────────────────────────

@@ -27,7 +27,7 @@ export default function TreatmentPlanForm({
   });
 
   const [procedures, setProcedures] = useState<Procedure[]>(
-    initialPlan?.procedures || []
+    initialPlan?.procedures || [],
   );
 
   const [newProcedure, setNewProcedure] = useState<Partial<Procedure>>({});

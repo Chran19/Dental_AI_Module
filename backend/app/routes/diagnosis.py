@@ -20,7 +20,7 @@ from app.services.diagnosis_service import DiagnosisService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/diagnosis", tags=["Differential Diagnosis (Module 3)"])
+router = APIRouter(prefix="/diagnosis", tags=["Differential Diagnosis (Module 3)"])
 
 
 # ─── Dependencies ────────────────────────────────────────────────────────────

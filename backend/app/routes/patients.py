@@ -7,14 +7,14 @@ Accessible by: Doctor, Receptionist, Admin
 import uuid
 from typing import List, Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user, CurrentUser
 from app.services.patient_service import PatientCreate, PatientResponse, PatientService, PatientUpdate
 
-router = APIRouter(prefix="/api/patients", tags=["Patient Management (EHR)"])
+router = APIRouter(prefix="/patients", tags=["Patient Management (EHR)"])
 
 
 # ─── Dependencies ────────────────────────────────────────────────────────────
@@ -31,9 +31,9 @@ async def get_patient_service(db: AsyncSession = Depends(get_db)) -> PatientServ
 
 @router.post("/", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
 async def create_patient(
-    payload: PatientCreate,
+    payload: Annotated[PatientCreate, Body()],
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     service: PatientService = Depends(get_patient_service),
-    current_user: Annotated[CurrentUser, Depends(get_current_user)] = None,
 ):
     """
     Register a new patient.
@@ -60,10 +60,10 @@ async def create_patient(
 
 @router.get("/", response_model=List[PatientResponse])
 async def list_patients(
+    current_user: Annotated[CurrentUser, Depends(get_current_user)],
     skip: int = 0,
     limit: int = 100,
     service: PatientService = Depends(get_patient_service),
-    current_user: Annotated[CurrentUser, Depends(get_current_user)] = None,
 ):
     """
     List all patients.

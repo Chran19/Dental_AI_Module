@@ -20,7 +20,7 @@ from app.services.risk_engine_service import RiskEngineService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/risk-engine", tags=["Risk Engine (Module 2)"])
+router = APIRouter(prefix="/risk-engine", tags=["Risk Engine (Module 2)"])
 
 
 # ─── Dependencies ────────────────────────────────────────────────────────────
