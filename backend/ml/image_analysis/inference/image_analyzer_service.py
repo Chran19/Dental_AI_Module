@@ -1,6 +1,11 @@
 """
 Image Analyzer Service: Main orchestrator for M8 (Dental Image Analysis)
 Integrates pathology detection, bone analysis, and clinical insights
+
+Fixed Issues:
+- Correct model loading (handles both dict and state_dict checkpoints)
+- Updated default model path resolution
+- ImageNet normalization now in model's forward pass (no double-normalization)
 """
 
 import torch
@@ -41,17 +46,39 @@ class ImageAnalyzerService:
         self.image_preprocessor = DentalImagePreprocessor()
         self.bone_analyzer = BoneAnalyzer()
         
-        # Load CNN model
-        default_model_path = Path(__file__).parent.parent.parent.parent / 'models' / 'dental_cnn_model_phase4.pth'
-        model_path = model_path or str(default_model_path)
+        # Resolve model path
+        if model_path is None:
+            # Try multiple possible locations
+            ml_dir = Path(__file__).parent.parent.parent
+            possible_paths = [
+                ml_dir / 'models' / 'dental_cnn_model_improved.pth',
+                ml_dir / 'models' / 'dental_cnn_model_phase4.pth',
+            ]
+            model_path = None
+            for p in possible_paths:
+                if p.exists():
+                    model_path = str(p)
+                    break
         
-        if Path(model_path).exists():
+        # Load CNN model
+        if model_path and Path(model_path).exists():
             try:
-                self.model = create_dental_cnn_model(device=device, pretrained=False)
-                checkpoint = torch.load(model_path, map_location=device)
-                self.model.load_state_dict(checkpoint['model_state_dict'] if isinstance(checkpoint, dict) else checkpoint)
+                self.model = create_dental_cnn_model(
+                    device=device, pretrained=False, freeze_backbone=False
+                )
+                checkpoint = torch.load(model_path, map_location=device, weights_only=False)
+                
+                if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+                    self.model.load_state_dict(checkpoint['model_state_dict'])
+                elif isinstance(checkpoint, dict):
+                    # Try loading as raw state dict
+                    self.model.load_state_dict(checkpoint)
+                else:
+                    self.model.load_state_dict(checkpoint)
+                
                 self.model.to(device)
-                logger.info(f"✅ Loaded trained model from {model_path}")
+                self.model.eval()
+                logger.info(f"Loaded trained model from {model_path}")
             except Exception as e:
                 logger.error(f"Failed to load model: {e}. Using ImageNet weights.")
                 self.model = create_dental_cnn_model(device=device, pretrained=True)
@@ -84,20 +111,22 @@ class ImageAnalyzerService:
         # 2. Get image info
         image_info = self.image_loader.get_image_info(image_path)
         
-        # 3. Preprocess image
+        # 3. Preprocess image (returns float32 [0,1])
         processed_image = self.image_preprocessor.preprocess_radiograph(raw_image)
-        image_tensor = torch.from_numpy(processed_image).permute(2, 0, 1).to(self.device)
         
-        # 4. Detect pathologies
+        # 4. Convert to tensor (C, H, W) - ImageNet norm is in model forward()
+        image_tensor = torch.from_numpy(processed_image).permute(2, 0, 1).float().to(self.device)
+        
+        # 5. Detect pathologies
         pathology_results = self.pathology_detector.detect_pathologies(image_tensor)
         
-        # 5. Analyze bone
+        # 6. Analyze bone
         bone_results = self.bone_analyzer.analyze_bone_loss(processed_image)
         
-        # 6. Generate annotated image
+        # 7. Generate annotated image
         annotated_img, img_base64 = self.generate_annotated_image(processed_image, pathology_results)
         
-        # 7. Generate clinical summary
+        # 8. Generate clinical summary
         clinical_summary = self._generate_clinical_summary(pathology_results, bone_results)
         
         return {
@@ -167,16 +196,13 @@ class ImageAnalyzerService:
         from PIL import Image as PILImage
         
         try:
-            # Save to temporary file
             with tempfile.NamedTemporaryFile(suffix=Path(filename).suffix, 
                                             delete=False) as tmp:
                 tmp.write(image_bytes)
                 tmp_path = tmp.name
             
-            # Analyze
             result = self.analyze_image(tmp_path)
             
-            # Clean up
             Path(tmp_path).unlink()
             
             return result
@@ -223,7 +249,7 @@ class ImageAnalyzerService:
         
         # Urgency recommendations
         if pathology['requires_intervention']['urgency'] == 'EMERGENCY':
-            recommendations.append('⚠️  URGENT: Patient requires immediate clinical review')
+            recommendations.append('URGENT: Patient requires immediate clinical review')
         elif pathology['requires_intervention']['urgency'] == 'HIGH':
             recommendations.append('Priority: Schedule appointment within 1-2 weeks')
         
@@ -240,7 +266,6 @@ class ImageAnalyzerService:
         if not images:
             return {}
         
-        # Count pathologies
         pathology_counts = {}
         urgent_count = 0
         
@@ -275,8 +300,6 @@ class ImageAnalyzerService:
         """
         import cv2
         import base64
-        from io import BytesIO
-        from PIL import Image
         
         # Convert to uint8 for annotation
         img_uint8 = (image_array * 255).astype(np.uint8)
@@ -293,15 +316,16 @@ class ImageAnalyzerService:
                    (10, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
         
         # Severity score
-        severity = primary_path.get('severity_score', 0)
+        severity = pathology_results.get('severity_score', 0)
         text_y += 30
         cv2.putText(img_bgr, f"Severity: {severity:.1f}/10",
                    (10, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
         
         # Region
-        region = pathology_results.get('tooth_region', 'Unknown')
+        region = pathology_results.get('tooth_region', {})
+        region_name = region.get('name', 'Unknown') if isinstance(region, dict) else str(region)
         text_y += 30
-        cv2.putText(img_bgr, f"Region: {region}",
+        cv2.putText(img_bgr, f"Region: {region_name}",
                    (10, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
         
         # Interventional status
@@ -309,10 +333,10 @@ class ImageAnalyzerService:
         if intervention.get('needed'):
             text_y += 30
             urgency_color = (0, 0, 255) if intervention.get('urgency') == 'EMERGENCY' else (0, 165, 255)
-            cv2.putText(img_bgr, f"⚠️ {intervention.get('urgency', 'URGENT')}",
+            cv2.putText(img_bgr, f"! {intervention.get('urgency', 'URGENT')}",
                        (10, text_y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, urgency_color, 2)
         
-        # Draw border around image
+        # Draw border
         cv2.rectangle(img_bgr, (5, 5), (507, 507), (0, 255, 0), 2)
         
         # Convert to base64

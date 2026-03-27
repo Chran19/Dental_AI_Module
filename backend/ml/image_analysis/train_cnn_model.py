@@ -1,6 +1,8 @@
 """
 Training Script for Dental Image Analysis CNN Model (Phase 4)
-Trains ResNet50-based model for pathology detection
+Simplified wrapper around the phase4_training_pipeline
+
+For full training, use: python -m ml.image_analysis.phase4_training_pipeline
 """
 
 import torch
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class DentalImageDataset(Dataset):
-    """Dataset loader for dental radiographs"""
+    """Simple dataset loader for dental radiographs"""
     
     def __init__(self, image_paths: list, labels: dict, preprocessor):
         self.image_paths = image_paths
@@ -40,7 +42,6 @@ class DentalImageDataset(Dataset):
         processed = self.preprocessor.preprocess_radiograph(raw_image)
         
         # Convert to tensor
-        import torch
         tensor = torch.from_numpy(processed).permute(2, 0, 1).float()
         
         # Get labels
@@ -56,7 +57,7 @@ class DentalImageDataset(Dataset):
 
 def train_dental_cnn_model(model, train_loader, val_loader, 
                           device='cpu', num_epochs=10,
-                          model_save_path='backend/ml/models/dental_cnn_model.pth'):
+                          model_save_path='backend/ml/models/dental_cnn_model_improved.pth'):
     """
     Train the dental image analysis CNN model
     
@@ -72,12 +73,16 @@ def train_dental_cnn_model(model, train_loader, val_loader,
     # Loss functions
     pathology_loss = nn.CrossEntropyLoss()
     region_loss = nn.CrossEntropyLoss()
-    severity_loss = nn.MSELoss()
+    severity_loss = nn.SmoothL1Loss()
     
-    # Optimizer
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', 
-                                                     factor=0.5, patience=3)
+    # Optimizer - use lower LR for fine-tuning
+    optimizer = optim.AdamW(
+        filter(lambda p: p.requires_grad, model.parameters()), 
+        lr=1e-4, weight_decay=1e-4
+    )
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=num_epochs, eta_min=1e-6
+    )
     
     best_val_loss = float('inf')
     training_history = {
@@ -102,26 +107,21 @@ def train_dental_cnn_model(model, train_loader, val_loader,
             region_labels = batch['region'].to(device)
             severity_labels = batch['severity'].to(device).unsqueeze(1)
             
-            # Forward pass
             optimizer.zero_grad()
             predictions = model(images)
             
-            # Calculate losses
             pathology_pred_loss = pathology_loss(predictions['pathology_logits'], pathology_labels)
             region_pred_loss = region_loss(predictions['region_logits'], region_labels)
             severity_pred_loss = severity_loss(predictions['severity'], severity_labels)
             
-            # Combined loss (weighted)
-            loss = 0.5 * pathology_pred_loss + 0.3 * region_pred_loss + 0.2 * severity_pred_loss
+            loss = 0.6 * pathology_pred_loss + 0.25 * region_pred_loss + 0.15 * severity_pred_loss
             
-            # Backward pass
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
             
             train_loss += loss.item()
             
-            # Calculate accuracy
             _, predicted = torch.max(predictions['pathology_logits'], 1)
             train_total += pathology_labels.size(0)
             train_correct += (predicted == pathology_labels).sum().item()
@@ -130,8 +130,8 @@ def train_dental_cnn_model(model, train_loader, val_loader,
                 print(f"Epoch {epoch+1}/{num_epochs}, Batch {batch_idx+1}/{len(train_loader)}, "
                       f"Loss: {loss.item():.4f}")
         
-        avg_train_loss = train_loss / len(train_loader)
-        train_accuracy = train_correct / train_total
+        avg_train_loss = train_loss / max(len(train_loader), 1)
+        train_accuracy = train_correct / max(train_total, 1)
         training_history['train_loss'].append(avg_train_loss)
         training_history['train_accuracy'].append(train_accuracy)
         
@@ -154,15 +154,15 @@ def train_dental_cnn_model(model, train_loader, val_loader,
                 region_pred_loss = region_loss(predictions['region_logits'], region_labels)
                 severity_pred_loss = severity_loss(predictions['severity'], severity_labels)
                 
-                loss = 0.5 * pathology_pred_loss + 0.3 * region_pred_loss + 0.2 * severity_pred_loss
+                loss = 0.6 * pathology_pred_loss + 0.25 * region_pred_loss + 0.15 * severity_pred_loss
                 val_loss += loss.item()
                 
                 _, predicted = torch.max(predictions['pathology_logits'], 1)
                 val_total += pathology_labels.size(0)
                 val_correct += (predicted == pathology_labels).sum().item()
         
-        avg_val_loss = val_loss / len(val_loader)
-        val_accuracy = val_correct / val_total
+        avg_val_loss = val_loss / max(len(val_loader), 1)
+        val_accuracy = val_correct / max(val_total, 1)
         training_history['val_loss'].append(avg_val_loss)
         training_history['val_accuracy'].append(val_accuracy)
         
@@ -170,14 +170,13 @@ def train_dental_cnn_model(model, train_loader, val_loader,
         print(f"  Train Loss: {avg_train_loss:.4f}, Accuracy: {train_accuracy:.4f}")
         print(f"  Val Loss: {avg_val_loss:.4f}, Accuracy: {val_accuracy:.4f}")
         
-        # Save best model
+        # Save best model (with proper format)
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             model.save_model(model_save_path)
             logger.info(f"Saved best model with val_loss: {best_val_loss:.4f}")
         
-        # Adjust learning rate
-        scheduler.step(avg_val_loss)
+        scheduler.step()
     
     # Save training history
     history_path = Path(model_save_path).parent / 'training_history.json'
@@ -190,4 +189,5 @@ def train_dental_cnn_model(model, train_loader, val_loader,
 
 if __name__ == '__main__':
     print("Dental Image Analysis Training Script")
-    print("To train the model, provide your dataset and call train_dental_cnn_model()")
+    print("For full pipeline training, run:")
+    print("  python -m ml.image_analysis.phase4_training_pipeline")

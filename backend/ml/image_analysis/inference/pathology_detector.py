@@ -1,5 +1,11 @@
 """
 Pathology Detection Service: Detect dental pathologies from radiographs
+
+Fixed Issues:
+- Updated to 6 real pathology classes matching OPG dataset
+- Corrected class names (Impacted_Teeth, Infection instead of wrong mappings)
+- Updated severity thresholds for actual conditions
+- Better confidence calibration
 """
 
 import numpy as np
@@ -15,19 +21,17 @@ class PathologyDetector:
     """Detects pathologies in dental radiographs"""
     
     # Pathology thresholds
-    DETECTION_THRESHOLD = 0.5
+    DETECTION_THRESHOLD = 0.3  # Lowered since we have fewer classes now
     HIGH_CONFIDENCE_THRESHOLD = 0.85
     
     # Risk levels based on pathology type and severity
     SEVERITY_THRESHOLDS = {
         'Normal': (0, 1),
-        'Caries': (1, 3),
-        'Periapical_Lesion': (3, 7),
+        'Caries': (1, 5),
+        'Impacted_Teeth': (2, 7),
         'Bone_Loss': (2, 8),
-        'Abscess': (5, 10),
+        'Infection': (4, 9),
         'Fracture': (4, 9),
-        'Restoration': (0, 2),
-        'Implant': (0, 2)
     }
     
     def __init__(self, model, device: str = 'cpu'):
@@ -41,14 +45,19 @@ class PathologyDetector:
         Detect pathologies in image
         
         Args:
-            image_tensor: Preprocessed image tensor (1, 3, 512, 512)
+            image_tensor: Preprocessed image tensor (3, 512, 512) in [0,1] range
             
         Returns:
             Dictionary with detection results
         """
         with torch.no_grad():
-            predictions = self.model(image_tensor.unsqueeze(0) if image_tensor.dim() == 3 
-                                    else image_tensor)
+            # Ensure proper batch dimension
+            if image_tensor.dim() == 3:
+                input_tensor = image_tensor.unsqueeze(0)
+            else:
+                input_tensor = image_tensor
+            
+            predictions = self.model(input_tensor)
         
         # Extract outputs
         pathology_logits = predictions['pathology_logits'][0]  # (num_pathologies,)
@@ -61,26 +70,26 @@ class PathologyDetector:
         region_probs = torch.softmax(region_logits, dim=0).cpu().numpy()
         
         # Get top pathology
-        top_pathology_id = np.argmax(pathology_probs)
-        top_pathology_prob = pathology_probs[top_pathology_id]
+        top_pathology_id = int(np.argmax(pathology_probs))
+        top_pathology_prob = float(pathology_probs[top_pathology_id])
         
         # Get top region
-        top_region_id = np.argmax(region_probs)
-        top_region_prob = region_probs[top_region_id]
+        top_region_id = int(np.argmax(region_probs))
+        top_region_prob = float(region_probs[top_region_id])
         
         # Build result dictionary
         result = {
             'timestamp': datetime.now().isoformat(),
             'primary_pathology': {
-                'class_id': int(top_pathology_id),
-                'name': self.model.get_pathology_name(int(top_pathology_id)),
-                'confidence': float(top_pathology_prob),
+                'class_id': top_pathology_id,
+                'name': self.model.get_pathology_name(top_pathology_id),
+                'confidence': top_pathology_prob,
                 'confidence_level': self._get_confidence_level(top_pathology_prob)
             },
             'tooth_region': {
-                'class_id': int(top_region_id),
-                'name': self.model.get_region_name(int(top_region_id)),
-                'confidence': float(top_region_prob)
+                'class_id': top_region_id,
+                'name': self.model.get_region_name(top_region_id),
+                'confidence': top_region_prob
             },
             'severity_score': float(severity),
             'severity_level': self._get_severity_level(top_pathology_id, severity),
@@ -99,9 +108,9 @@ class PathologyDetector:
     
     def _get_confidence_level(self, confidence: float) -> str:
         """Classify confidence as LOW, MODERATE, HIGH"""
-        if confidence < 0.6:
+        if confidence < 0.5:
             return 'LOW'
-        elif confidence < 0.85:
+        elif confidence < 0.75:
             return 'MODERATE'
         else:
             return 'HIGH'
@@ -124,6 +133,8 @@ class PathologyDetector:
             norm_severity = (severity - min_sev) / (max_sev - min_sev)
         else:
             norm_severity = severity / 10
+        
+        norm_severity = max(0, min(1, norm_severity))  # Clamp
         
         if norm_severity < 0.33:
             return 'MILD'
@@ -154,12 +165,12 @@ class PathologyDetector:
         pathology_name = self.model.get_pathology_name(pathology_id)
         
         # Pathologies that always need intervention
-        urgent_pathologies = ['Abscess', 'Fracture', 'Periapical_Lesion']
+        urgent_pathologies = ['Infection', 'Fracture']
         
         needs_intervention = pathology_name in urgent_pathologies or (
-            pathology_name not in ['Normal', 'Restoration'] and 
-            severity > 5 and 
-            confidence > 0.7
+            pathology_name not in ['Normal'] and 
+            severity > 4 and 
+            confidence > 0.6
         )
         
         return {
@@ -170,9 +181,11 @@ class PathologyDetector:
     
     def _get_urgency(self, pathology_name: str, severity: float) -> str:
         """Determine urgency level"""
-        if pathology_name == 'Abscess':
+        if pathology_name == 'Infection' and severity > 6:
             return 'EMERGENCY'
-        elif pathology_name in ['Fracture', 'Periapical_Lesion']:
+        elif pathology_name in ['Fracture', 'Infection']:
+            return 'HIGH'
+        elif pathology_name == 'Impacted_Teeth' and severity > 5:
             return 'HIGH'
         elif severity > 7:
             return 'HIGH'
@@ -185,13 +198,13 @@ class PathologyDetector:
         """Get recommended clinical action"""
         if pathology_name == 'Caries':
             return 'Requires restoration, consider preventive assessment'
-        elif pathology_name == 'Periapical_Lesion':
-            return 'Endodontic treatment or re-treatment recommended'
-        elif pathology_name == 'Abscess':
-            return 'Immediate drainage and antibiotics needed'
+        elif pathology_name == 'Infection':
+            return 'Endodontic treatment, drainage and/or antibiotics recommended'
         elif pathology_name == 'Bone_Loss':
             return 'Periodontal assessment and treatment plan needed'
         elif pathology_name == 'Fracture':
             return 'Surgical consultation recommended'
+        elif pathology_name == 'Impacted_Teeth':
+            return 'Evaluate for surgical extraction, monitor for complications'
         else:
             return 'Monitor and follow-up as needed'
