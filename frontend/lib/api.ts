@@ -98,42 +98,31 @@ export async function logout() {
 
 // Image analysis endpoints
 export async function uploadImage(file: File) {
-  // Validate file size (max 10MB for single file)
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  // Validate file size (max 50MB to match backend)
+  const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
   if (file.size > MAX_FILE_SIZE) {
     const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-    throw new Error(`File is too large (${sizeMB}MB). Maximum allowed size is 10MB.`);
+    throw new Error(`File is too large (${sizeMB}MB). Maximum allowed size is 50MB.`);
   }
 
   // Validate file type
   const allowedTypes = ['image/jpeg', 'image/png', 'image/tiff', 'image/x-tiff', 'image/dicom'];
-  if (!allowedTypes.includes(file.type)) {
-    throw new Error(`File type ${file.type} not supported. Please upload JPG, PNG, TIFF, or DICOM images.`);
+  // Some browsers may not set MIME type for medical images, allow by extension too
+  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.tiff', '.tif', '.dcm'];
+  const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+  
+  if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(ext)) {
+    throw new Error(`File type not supported. Please upload JPG, PNG, TIFF, or DICOM images.`);
   }
 
   const formData = new FormData();
   formData.append('file', file);
-  // Default mocks
-  formData.append('patient_id', '00000000-0000-0000-0000-000000000000');
-  formData.append('modality', 'Intraoral_Photo');
 
-  try {
-    return await fetchAPI('/api/images/upload', {
-      method: 'POST',
-      body: formData,
-    });
-  } catch (err) {
-    console.log('[API] Image upload fallback:', err);
-    return {
-      status: "completed",
-      message: "Image analyzed successfully",
-      analysis_result: {
-        pathologies: ["Possible caries detected"],
-        bone_analysis: { density: "Normal", height_mm: 18 },
-        confidence: 0.82
-      }
-    };
-  }
+  // Call the real ML image analysis endpoint (not /api/images/upload)
+  return await fetchAPI('/image-analysis/upload', {
+    method: 'POST',
+    body: formData,
+  });
 }
 
 export async function getAnalysisResults() {
@@ -142,26 +131,20 @@ export async function getAnalysisResults() {
   return Promise.resolve([]);
 }
 
-export async function uploadAndAnalyzeImage(file: File, patientId?: string) {
+export async function uploadAndAnalyzeImage(file: File, patientId?: string, withDiagnosis: boolean = false) {
   const formData = new FormData();
   formData.append('file', file);
   if (patientId) {
     formData.append('patient_id', patientId);
   }
-
-  try {
-    return await fetchAPI('/image-analysis/upload', {
-      method: 'POST',
-      body: formData,
-    });
-  } catch (err) {
-    console.log('[API] Image analysis with patient fallback:', err);
-    return {
-      status: "completed",
-      patient_id: patientId,
-      analysis: { pathologies: [], confidence: 0.75 }
-    };
+  if (withDiagnosis) {
+    formData.append('with_diagnosis', 'true');
   }
+
+  return await fetchAPI('/image-analysis/upload', {
+    method: 'POST',
+    body: formData,
+  });
 }
 
 // Patient endpoints

@@ -22,7 +22,7 @@ export default function PatientSearch({ onSearch }: PatientSearchProps) {
       </div>
       <input
         type="text"
-        className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all shadow-sm"
+        className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg leading-5 bg-white placeholder-slate-700 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent sm:text-sm transition-all shadow-sm"
         placeholder="Search patients by name or ID..."
         value={query}
         onChange={(e) => {

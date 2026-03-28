@@ -4,17 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { fetchAPI } from "@/lib/api";
 import { PatientCreate } from "@/lib/types/patient";
-import { 
-  UserPlus, 
-  ArrowLeft, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  UserPlus,
+  ArrowLeft,
+  Loader2,
+  CheckCircle2,
   AlertCircle,
   User,
   Mail,
   Phone,
   Calendar,
-  Layers
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -30,12 +30,14 @@ export default function PatientIntakePage() {
     email: "",
     phone: "",
     date_of_birth: "",
-    gender: "Other"
+    gender: "Other",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,10 +50,10 @@ export default function PatientIntakePage() {
         method: "POST",
         body: JSON.stringify(formData),
         headers: {
-          "Content-Type": "application/json"
-        }
+          "Content-Type": "application/json",
+        },
       });
-      
+
       setSuccess(true);
       setTimeout(() => {
         router.push(`/dashboard/patients/${result.id || ""}`);
@@ -68,7 +70,9 @@ export default function PatientIntakePage() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-2">
           <CheckCircle2 size={32} />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900">Patient Registered!</h2>
+        <h2 className="text-2xl font-bold text-slate-900">
+          Patient Registered!
+        </h2>
         <p className="text-slate-500">Redirecting to patient profile...</p>
       </div>
     );
@@ -77,8 +81,8 @@ export default function PatientIntakePage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6 flex items-center justify-between">
-        <Link 
-          href="/dashboard/patients" 
+        <Link
+          href="/dashboard/patients"
           className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors"
         >
           <ArrowLeft size={18} />
@@ -117,7 +121,7 @@ export default function PatientIntakePage() {
                 required
                 value={formData.first_name}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 placeholder-slate-700"
                 placeholder="e.g. John"
               />
             </div>
@@ -133,7 +137,7 @@ export default function PatientIntakePage() {
                 required
                 value={formData.last_name}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 placeholder-slate-700"
                 placeholder="e.g. Doe"
               />
             </div>
@@ -148,7 +152,7 @@ export default function PatientIntakePage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 placeholder-slate-700"
                 placeholder="john.doe@example.com"
               />
             </div>
@@ -163,7 +167,7 @@ export default function PatientIntakePage() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 placeholder-slate-700"
                 placeholder="+1 (555) 000-0000"
               />
             </div>

@@ -40,15 +40,17 @@ export default function SettingsPage() {
               <div className="mt-4 space-y-3">
                 <label className="flex items-center space-x-3 cursor-pointer">
                   <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-gray-700">Enable notifications</span>
+                  <span className="text-gray-900 font-medium">
+                    Enable notifications
+                  </span>
                 </label>
                 <label className="flex items-center space-x-3 cursor-pointer">
                   <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-gray-700">Dark mode</span>
+                  <span className="text-gray-900 font-medium">Dark mode</span>
                 </label>
                 <label className="flex items-center space-x-3 cursor-pointer">
                   <input type="checkbox" defaultChecked className="rounded" />
-                  <span className="text-gray-700">
+                  <span className="text-gray-900 font-medium">
                     Auto-save clinical notes
                   </span>
                 </label>
