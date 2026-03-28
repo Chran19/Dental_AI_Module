@@ -126,7 +126,7 @@ export default function Sidebar() {
               <span className="text-blue-400">⚕️</span>
               <span>ChairSide</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-1">Dental AI</p>
+            <p className="text-xs text-slate-600 mt-1 font-medium">Dental AI</p>
           </div>
         )}
 
@@ -175,7 +175,7 @@ export default function Sidebar() {
           {!isCollapsed && (
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-medium truncate">{user?.email}</p>
-              <p className="text-xs text-slate-400 capitalize">
+              <p className="text-xs text-slate-600 capitalize font-medium">
                 {user?.role?.toLowerCase()}
               </p>
             </div>

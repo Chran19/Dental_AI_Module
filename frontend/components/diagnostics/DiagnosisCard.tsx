@@ -29,7 +29,7 @@ export default function DiagnosisCard({
             <h4 className="text-lg font-semibold text-slate-900">
               {config.icon} {diagnosis.condition}
             </h4>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-700 mt-1 font-medium">
               {new Date(diagnosis.created_at || "").toLocaleDateString()}
             </p>
           </div>
@@ -43,7 +43,9 @@ export default function DiagnosisCard({
         )}
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-slate-600">Confidence Score:</span>
+          <span className="text-sm text-slate-700 font-medium">
+            Confidence Score:
+          </span>
           <div className="flex items-center gap-2">
             <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
               <div

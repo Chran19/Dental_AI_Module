@@ -33,7 +33,7 @@ export default function DoctorDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">
+              <p className="text-gray-700 text-sm font-semibold">
                 Today's Consultations
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">5</p>
@@ -49,7 +49,7 @@ export default function DoctorDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">
+              <p className="text-gray-700 text-sm font-semibold">
                 Pending Diagnoses
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">8</p>
@@ -67,7 +67,7 @@ export default function DoctorDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">
+              <p className="text-gray-700 text-sm font-semibold">
                 Active Treatment Plans
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">12</p>
@@ -83,7 +83,7 @@ export default function DoctorDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">
+              <p className="text-gray-700 text-sm font-semibold">
                 Completed This Month
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">18</p>
@@ -139,7 +139,9 @@ export default function DoctorDashboard() {
                 >
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{slot.patient}</p>
-                    <p className="text-xs text-gray-600">{slot.issue}</p>
+                    <p className="text-xs text-gray-700 font-medium">
+                      {slot.issue}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold text-gray-900">
@@ -195,10 +197,14 @@ export default function DoctorDashboard() {
                 >
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">{case_.patient}</p>
-                    <p className="text-xs text-gray-600">{case_.diagnosis}</p>
+                    <p className="text-xs text-gray-700 font-medium">
+                      {case_.diagnosis}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-500">{case_.date}</p>
+                    <p className="text-xs text-gray-700 font-medium">
+                      {case_.date}
+                    </p>
                     <span
                       className={`inline-block text-xs font-semibold px-2 py-1 rounded mt-1 ${
                         case_.status === "Completed"

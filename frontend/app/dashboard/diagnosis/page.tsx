@@ -393,7 +393,7 @@ export default function DiagnosisPage() {
           {loading ? (
             <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
               <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
-              <p className="mt-4 font-medium text-gray-600">Loading cases...</p>
+              <p className="mt-4 font-medium text-gray-700">Loading cases...</p>
             </div>
           ) : filteredDiagnoses.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
@@ -410,7 +410,7 @@ export default function DiagnosisPage() {
                   setStatusFilter("all");
                   setSeverityFilter("all");
                 }}
-                className="mt-6 px-4 py-2 rounded-lg border border-gray-300 text-gray-600 font-medium hover:bg-gray-50"
+                className="mt-6 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
               >
                 Clear all filters
               </button>
@@ -457,7 +457,7 @@ export default function DiagnosisPage() {
                           <div className="flex items-center text-sm font-medium text-gray-600 gap-6">
                             <span className="flex items-center gap-1.5">
                               <User size={15} /> {diagnosis.patient_name}{" "}
-                              <span className="text-gray-400 font-normal">
+                              <span className="text-gray-700 font-medium">
                                 ({diagnosis.patient_id})
                               </span>
                             </span>
@@ -494,7 +494,7 @@ export default function DiagnosisPage() {
                           {/* Column 1: Findings & Plan */}
                           <div className="flex-1 space-y-6">
                             <div>
-                              <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-3 flex items-center gap-1.5">
+                              <h4 className="text-xs uppercase tracking-wider font-bold text-gray-700 mb-3 flex items-center gap-1.5">
                                 <FileText size={14} /> Clinical Findings
                               </h4>
                               <ul className="space-y-1.5">
@@ -520,7 +520,7 @@ export default function DiagnosisPage() {
                                 {diagnosis.recommendation}
                               </p>
 
-                              <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">
+                              <h4 className="text-xs uppercase tracking-wider font-bold text-gray-700 mb-1 flex items-center gap-1.5">
                                 Treatment Plan
                               </h4>
                               <p className="text-sm text-gray-700 leading-relaxed">
@@ -533,13 +533,13 @@ export default function DiagnosisPage() {
                           {/* Column 2: Timeline, Media, Actions */}
                           <div className="lg:w-80 flex flex-col justify-between space-y-6">
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
-                              <h4 className="text-xs uppercase tracking-wider font-bold text-gray-400 mb-3 flex items-center gap-1.5">
+                              <h4 className="text-xs uppercase tracking-wider font-bold text-gray-700 mb-3 flex items-center gap-1.5">
                                 <Clock size={14} /> Timeline
                               </h4>
                               <div className="relative pl-4 space-y-4 before:content-[''] before:absolute before:left-1 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
                                 <div className="relative">
                                   <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white shadow-sm"></div>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-gray-700 font-medium">
                                     Last Encounter
                                   </p>
                                   <p className="text-sm font-medium text-gray-800">
@@ -552,7 +552,7 @@ export default function DiagnosisPage() {
                                   <div
                                     className={`absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full ${diagnosis.overdue ? "bg-red-500" : "bg-blue-500"} border-2 border-white shadow-sm`}
                                   ></div>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-gray-700 font-medium">
                                     Next Review
                                   </p>
                                   <p
@@ -623,7 +623,7 @@ export default function DiagnosisPage() {
               </h2>
               <button
                 onClick={() => setViewMediaDiagnosis(null)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-700 hover:text-gray-900"
               >
                 ✕
               </button>
@@ -632,8 +632,10 @@ export default function DiagnosisPage() {
               <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
                 <div className="text-center">
                   <ImageIcon size={48} className="text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">Sample Periapical X-Ray</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-gray-700 font-medium">
+                    Sample Periapical X-Ray
+                  </p>
+                  <p className="text-sm text-gray-700">
                     Tooth #16 - Date: 2024-03-15
                   </p>
                 </div>
@@ -641,8 +643,10 @@ export default function DiagnosisPage() {
               <div className="bg-gray-100 rounded-lg h-64 flex items-center justify-center">
                 <div className="text-center">
                   <ImageIcon size={48} className="text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">Sample Bitewing X-Ray</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-gray-700 font-medium">
+                    Sample Bitewing X-Ray
+                  </p>
+                  <p className="text-sm text-gray-700">
                     Teeth #26-27 - Date: 2024-03-15
                   </p>
                 </div>

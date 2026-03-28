@@ -126,21 +126,27 @@ export default function PatientProfilePage({
               <div className="flex items-center gap-3">
                 <Phone className="text-gray-400" size={20} />
                 <div>
-                  <p className="text-xs text-gray-500 uppercase">Phone</p>
+                  <p className="text-xs text-gray-700 font-semibold uppercase">
+                    Phone
+                  </p>
                   <p className="text-gray-900 font-medium">{patient.phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Mail className="text-gray-400" size={20} />
                 <div>
-                  <p className="text-xs text-gray-500 uppercase">Email</p>
+                  <p className="text-xs text-gray-700 font-semibold uppercase">
+                    Email
+                  </p>
                   <p className="text-gray-900 font-medium">{patient.email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <MapPin className="text-gray-400" size={20} />
                 <div>
-                  <p className="text-xs text-gray-500 uppercase">Address</p>
+                  <p className="text-xs text-gray-700 font-semibold uppercase">
+                    Address
+                  </p>
                   <p className="text-gray-900 font-medium text-sm">
                     {patient.address}
                   </p>
@@ -149,7 +155,9 @@ export default function PatientProfilePage({
               <div className="flex items-center gap-3">
                 <Calendar className="text-gray-400" size={20} />
                 <div>
-                  <p className="text-xs text-gray-500 uppercase">DOB / Age</p>
+                  <p className="text-xs text-gray-700 font-semibold uppercase">
+                    DOB / Age
+                  </p>
                   <p className="text-gray-900 font-medium">
                     {patient.date_of_birth} ({patient.age}y)
                   </p>

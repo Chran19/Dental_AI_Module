@@ -179,7 +179,7 @@ export default function TreatmentPage() {
               {idx < currentIndex ? <CheckCircle size={12} /> : idx + 1}
             </div>
             <span
-              className={`text-xs mt-1 font-medium ${idx <= currentIndex ? "text-gray-800" : "text-gray-400"}`}
+              className={`text-xs mt-1 font-medium ${idx <= currentIndex ? "text-gray-800" : "text-gray-600"}`}
             >
               {stage}
             </span>
@@ -301,13 +301,13 @@ export default function TreatmentPage() {
           <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
             <button
               onClick={() => setViewMode("list")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition ${viewMode === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition ${viewMode === "list" ? "bg-white text-gray-900 shadow-sm" : "text-gray-700 hover:text-gray-900"}`}
             >
               <AlignLeft size={16} /> List View
             </button>
             <button
               onClick={() => setViewMode("timeline")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition ${viewMode === "timeline" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-bold transition ${viewMode === "timeline" ? "bg-white text-gray-900 shadow-sm" : "text-gray-700 hover:text-gray-900"}`}
             >
               <LayoutList size={16} /> Timeline View
             </button>
@@ -365,7 +365,7 @@ export default function TreatmentPage() {
                     </h3>
                     <p className="text-sm font-medium text-indigo-600 flex items-center gap-1 mt-1">
                       <User size={14} /> {plan.patient_name}{" "}
-                      <span className="text-gray-400 font-normal ml-1">
+                      <span className="text-gray-700 font-medium ml-1">
                         ({plan.patient_id})
                       </span>
                     </p>
@@ -397,7 +397,7 @@ export default function TreatmentPage() {
                 {/* Card Body */}
                 <div className="p-5 flex-1 flex flex-col justify-between">
                   <div className="mb-6">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                    <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
                       Linked Diagnosis
                     </p>
                     <p className="text-sm text-gray-800 bg-gray-50 p-2 rounded border border-gray-100 inline-flex items-center gap-2">
@@ -453,7 +453,7 @@ export default function TreatmentPage() {
           /* Timeline/Gantt Alternative View */
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm p-6 overflow-x-auto">
             <div className="min-w-[800px]">
-              <div className="grid grid-cols-12 gap-4 pb-4 border-b border-gray-200 text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <div className="grid grid-cols-12 gap-4 pb-4 border-b border-gray-200 text-xs font-bold text-gray-700 uppercase tracking-wider">
                 <div className="col-span-3">Patient & Plan</div>
                 <div className="col-span-2">Diagnostic Link</div>
                 <div className="col-span-7">Timeline (Current Month)</div>
@@ -522,7 +522,7 @@ export default function TreatmentPage() {
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-2 text-xl font-bold"
+                className="text-gray-700 hover:text-gray-900 p-2 text-xl font-bold"
               >
                 &times;
               </button>

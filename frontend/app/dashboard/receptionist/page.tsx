@@ -33,7 +33,7 @@ export default function ReceptionistDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">
+              <p className="text-gray-700 text-sm font-semibold">
                 Checked In Today
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">12</p>
@@ -49,7 +49,7 @@ export default function ReceptionistDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">
+              <p className="text-gray-700 text-sm font-semibold">
                 Currently in Queue
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">5</p>
@@ -65,7 +65,7 @@ export default function ReceptionistDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">
+              <p className="text-gray-700 text-sm font-semibold">
                 New Patients This Month
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">8</p>
@@ -81,7 +81,7 @@ export default function ReceptionistDashboard() {
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-600 text-sm font-medium">
+              <p className="text-gray-700 text-sm font-semibold">
                 Pending Payments
               </p>
               <p className="text-3xl font-bold text-gray-900 mt-2">$1,250</p>
@@ -158,7 +158,9 @@ export default function ReceptionistDashboard() {
                       <p className="font-medium text-gray-900">
                         {item.patient}
                       </p>
-                      <p className="text-xs text-gray-600">{item.doctor}</p>
+                      <p className="text-xs text-gray-700 font-medium">
+                        {item.doctor}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -217,7 +219,7 @@ export default function ReceptionistDashboard() {
                     </p>
                     <div>
                       <p className="font-medium text-gray-900">{apt.patient}</p>
-                      <p className="text-xs text-gray-600 flex items-center gap-1">
+                      <p className="text-xs text-gray-700 font-medium flex items-center gap-1">
                         <Phone size={14} />
                         {apt.phone}
                       </p>

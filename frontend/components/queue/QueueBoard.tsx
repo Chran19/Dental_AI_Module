@@ -38,7 +38,7 @@ export default function QueueBoard({
           <Clock size={24} />
         </div>
         <h3 className="text-lg font-bold text-slate-800">Queue is empty</h3>
-        <p className="text-slate-500">
+        <p className="text-slate-700 font-medium">
           No patients are currently waiting for consultation.
         </p>
       </div>

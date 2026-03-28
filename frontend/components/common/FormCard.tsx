@@ -21,7 +21,9 @@ export default function FormCard({
         <div className="mb-6">
           <h2 className="text-xl font-bold text-gray-900">{title}</h2>
           {description && (
-            <p className="text-gray-600 text-sm mt-1">{description}</p>
+            <p className="text-gray-700 text-sm mt-1 font-medium">
+              {description}
+            </p>
           )}
         </div>
       )}

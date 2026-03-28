@@ -133,7 +133,7 @@ export default function ImageUploader({
               <h3 className="text-sm font-bold text-slate-900 mb-1">
                 Click or drag to upload X-rays
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-700 font-medium">
                 Supports JPG, PNG, DICOM (Max 10MB)
               </p>
             </>

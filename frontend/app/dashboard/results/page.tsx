@@ -39,11 +39,13 @@ export default function ResultsPage() {
         </Link>
         <div className="mt-8 rounded-lg bg-white p-8 shadow-lg">
           <h1 className="text-3xl font-bold text-gray-900">Analysis Results</h1>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-700 font-medium">
             View all analysis results and reports
           </p>
 
-          {loading && <p className="mt-6 text-gray-600">Loading results...</p>}
+          {loading && (
+            <p className="mt-6 text-gray-700 font-medium">Loading results...</p>
+          )}
 
           {error && (
             <div className="mt-6 rounded-lg bg-red-50 p-4 text-red-700 border border-red-200">
@@ -52,7 +54,7 @@ export default function ResultsPage() {
           )}
 
           {!loading && results.length === 0 && (
-            <p className="mt-6 text-gray-600">
+            <p className="mt-6 text-gray-700 font-medium">
               No results yet. Upload an image to get started.
             </p>
           )}

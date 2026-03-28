@@ -25,7 +25,7 @@ export default function DashboardPage() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-700 font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -86,7 +86,7 @@ export default function DashboardPage() {
       <main className="mx-auto max-w-6xl px-4 py-12">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-gray-700 font-medium">
             Welcome to the Dental AI Analysis System
           </p>
         </div>
@@ -103,7 +103,9 @@ export default function DashboardPage() {
               <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition">
                 {button.label}
               </h3>
-              <p className="mt-1 text-xs text-gray-500">Click to navigate</p>
+              <p className="mt-1 text-xs text-gray-700 font-medium">
+                Click to navigate
+              </p>
             </button>
           ))}
         </div>
@@ -111,17 +113,19 @@ export default function DashboardPage() {
         {/* Quick Stats */}
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="rounded-lg bg-white p-6 shadow-md">
-            <h3 className="text-gray-600 text-sm font-medium">
+            <h3 className="text-gray-700 text-sm font-semibold">
               Total Analyses
             </h3>
             <p className="mt-2 text-3xl font-bold text-gray-900">0</p>
           </div>
           <div className="rounded-lg bg-white p-6 shadow-md">
-            <h3 className="text-gray-600 text-sm font-medium">Patients</h3>
+            <h3 className="text-gray-700 text-sm font-semibold">Patients</h3>
             <p className="mt-2 text-3xl font-bold text-gray-900">0</p>
           </div>
           <div className="rounded-lg bg-white p-6 shadow-md">
-            <h3 className="text-gray-600 text-sm font-medium">System Status</h3>
+            <h3 className="text-gray-700 text-sm font-semibold">
+              System Status
+            </h3>
             <p className="mt-2 text-lg font-bold text-green-600">
               ✓ Operational
             </p>

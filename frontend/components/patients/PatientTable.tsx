@@ -41,7 +41,7 @@ export default function PatientTable({
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+          <thead className="bg-slate-50 text-[11px] font-semibold text-slate-700 uppercase tracking-wider">
             <tr>
               <th scope="col" className="px-6 py-3 text-left">
                 Patient

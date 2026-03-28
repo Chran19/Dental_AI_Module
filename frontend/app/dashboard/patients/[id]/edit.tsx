@@ -274,17 +274,23 @@ export default function EditPatientPage({
 
             <div className="space-y-3 mb-6 pb-6 border-b border-gray-200">
               <div>
-                <p className="text-xs text-gray-500 uppercase">Name</p>
+                <p className="text-xs text-gray-700 font-semibold uppercase">
+                  Name
+                </p>
                 <p className="font-medium text-gray-900">{formData.name}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">Email</p>
+                <p className="text-xs text-gray-700 font-semibold uppercase">
+                  Email
+                </p>
                 <p className="font-medium text-gray-900 truncate">
                   {formData.email}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 uppercase">Phone</p>
+                <p className="text-xs text-gray-700 font-semibold uppercase">
+                  Phone
+                </p>
                 <p className="font-medium text-gray-900">{formData.phone}</p>
               </div>
             </div>

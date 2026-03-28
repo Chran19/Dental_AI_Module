@@ -55,7 +55,9 @@ export default function LoginForm() {
     <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg border border-slate-100">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-slate-900">Sign In</h2>
-        <p className="text-slate-500 mt-2">Access the ChairSide Companion</p>
+        <p className="text-slate-700 mt-2 font-medium">
+          Access the ChairSide Companion
+        </p>
       </div>
 
       {error && (
@@ -110,7 +112,7 @@ export default function LoginForm() {
         </button>
       </form>
 
-      <div className="text-center mt-4 text-sm text-slate-500">
+      <div className="text-center mt-4 text-sm text-slate-700 font-medium">
         <p>
           Don't have an account?{" "}
           <a
@@ -122,7 +124,7 @@ export default function LoginForm() {
         </p>
       </div>
 
-      <div className="mt-6 pt-6 border-t border-slate-100 italic text-center text-[10px] text-slate-400">
+      <div className="mt-6 pt-6 border-t border-slate-100 italic text-center text-[10px] text-slate-500 font-medium">
         Default test credentials available in development mode
       </div>
     </div>

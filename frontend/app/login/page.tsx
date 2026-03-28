@@ -29,7 +29,7 @@ export default function LoginPage() {
           <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
             ChairSide Companion
           </h1>
-          <p className="mt-2 text-lg text-slate-500 font-medium">
+          <p className="mt-2 text-lg text-slate-700 font-semibold">
             AI-Powered Dental Intelligence
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
 
-        <div className="mt-12 text-center text-slate-400 text-sm">
+        <div className="mt-12 text-center text-slate-500 text-sm font-medium">
           &copy; {new Date().getFullYear()} ChairSide Companion. All rights
           reserved.
         </div>

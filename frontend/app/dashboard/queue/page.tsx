@@ -73,7 +73,7 @@ export default function ReceptionistQueuePage() {
             <Calendar className="text-blue-600" />
             Active Clinic Queue
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="text-slate-700 text-sm mt-1 font-medium">
             Real-time occupancy and patient flow status
           </p>
         </div>
@@ -147,7 +147,7 @@ function StatCard({ icon: Icon, label, value, sub, color }: any) {
         <p className="text-3xl font-black text-slate-900 mt-0.5 tracking-tight group-hover:scale-105 transition-transform origin-left">
           {value}
         </p>
-        <p className="text-[10px] text-slate-400 mt-1 font-medium">{sub}</p>
+        <p className="text-[10px] text-slate-600 mt-1 font-medium">{sub}</p>
       </div>
     </div>
   );
