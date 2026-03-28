@@ -72,6 +72,21 @@ export default function RiskPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    
+    if (currentStep === 1) {
+      if (!formData.patient_id || !formData.age || !formData.gender || !formData.smoking_status) {
+        setError("Please fill out all patient profile fields.");
+        return;
+      }
+    }
+    if (currentStep === 3) {
+      if (formData.symptoms.length === 0) {
+        setError("Please select at least one reported symptom.");
+        return;
+      }
+    }
+
     if (currentStep < 3) {
       setCurrentStep((prev) => prev + 1);
       return;
@@ -232,7 +247,7 @@ export default function RiskPage() {
                                 patient_id: e.target.value,
                               })
                             }
-                            className="w-full rounded-lg border-gray-300 px-4 py-3 border focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50 focus:bg-white"
+                            className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
                           />
                         </div>
                         <div>
@@ -245,7 +260,7 @@ export default function RiskPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, age: e.target.value })
                             }
-                            className="w-full rounded-lg border-gray-300 px-4 py-3 border focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50 focus:bg-white"
+                            className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
                           />
                         </div>
                         <div>
@@ -260,7 +275,7 @@ export default function RiskPage() {
                                 gender: e.target.value,
                               })
                             }
-                            className="w-full rounded-lg border-gray-300 px-4 py-3 border focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50 focus:bg-white"
+                            className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
                           >
                             <option>Male</option>
                             <option>Female</option>
@@ -279,7 +294,7 @@ export default function RiskPage() {
                                 smoking_status: e.target.value,
                               })
                             }
-                            className="w-full rounded-lg border-gray-300 px-4 py-3 border focus:ring-2 focus:ring-indigo-500 outline-none transition bg-gray-50 focus:bg-white"
+                            className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
                           >
                             <option>Non-Smoker</option>
                             <option value="Former_Smoker">Former Smoker</option>

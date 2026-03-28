@@ -88,8 +88,28 @@ export default function ClinicalPage() {
     { id: 5, title: "Review", icon: ClipboardList },
   ];
 
-  const handleNext = () =>
+  const handleNext = () => {
+    setError("");
+    if (currentStep === 1) {
+      if (!formData.patient_id || !formData.age || !formData.gender || !formData.chief_complaint) {
+        setError("Please fill out all demographic fields.");
+        return;
+      }
+    }
+    if (currentStep === 2) {
+      if (!formData.symptom_duration_days || formData.symptoms.length === 0) {
+        setError("Please select at least one symptom and duration.");
+        return;
+      }
+    }
+    if (currentStep === 3) {
+      if (!formData.tooth_site) {
+        setError("Please select the affected tooth.");
+        return;
+      }
+    }
     setCurrentStep((prev) => Math.min(prev + 1, steps.length));
+  };
   const handlePrev = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -255,8 +275,15 @@ export default function ClinicalPage() {
                           })
                         }
                         required
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                        list="patients"
+                        placeholder="Search Name or ID"
+                        className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                       />
+                      <datalist id="patients">
+                         <option value="550e8400-e29b-41d4-a716-446655440000">Charlie Brown (Current)</option>
+                         <option value="NEW-PATIENT-001">John Doe (New)</option>
+                         <option value="NEW-PATIENT-002">Jane Smith (New)</option>
+                      </datalist>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
@@ -271,7 +298,7 @@ export default function ClinicalPage() {
                           setFormData({ ...formData, age: e.target.value })
                         }
                         required
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                       />
                     </div>
                     <div className="space-y-2">
@@ -283,7 +310,7 @@ export default function ClinicalPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, gender: e.target.value })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                       >
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -305,7 +332,7 @@ export default function ClinicalPage() {
                         }
                         required
                         placeholder="e.g. Pain in lower left jaw"
-                        className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                       />
                     </div>
                   </div>
@@ -336,7 +363,7 @@ export default function ClinicalPage() {
                           symptom_duration_days: e.target.value,
                         })
                       }
-                      className="w-full md:w-1/3 rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                      className="w-full md:w-1/3 text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                     />
                   </div>
 
@@ -459,7 +486,7 @@ export default function ClinicalPage() {
                               jaw_region: e.target.value,
                             })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                          className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                         >
                           <option value="Anterior_Maxilla">
                             Anterior Maxilla
@@ -582,7 +609,7 @@ export default function ClinicalPage() {
                           smoking_status: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                      className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                     >
                       <option value="Non-Smoker">Non-Smoker</option>
                       <option value="Former_Smoker">Former Smoker</option>
@@ -691,6 +718,15 @@ export default function ClinicalPage() {
                       Review & Submit
                     </h2>
                   </div>
+
+                  {error && (
+                    <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-700 border border-red-200 flex items-start">
+                      <AlertTriangle className="mr-3 flex-shrink-0 mt-0.5" size={20} />
+                      <div>
+                        <strong>Error:</strong> {error}
+                      </div>
+                    </div>
+                  )}
 
                   {success ? (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center shadow-sm">
@@ -830,18 +866,6 @@ export default function ClinicalPage() {
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="rounded-lg bg-red-50 p-4 text-red-700 border border-red-200 flex items-start">
-                      <AlertTriangle
-                        className="mr-3 flex-shrink-0 mt-0.5"
-                        size={20}
-                      />
-                      <div>
-                        <strong>Error:</strong> {error}
                       </div>
                     </div>
                   )}

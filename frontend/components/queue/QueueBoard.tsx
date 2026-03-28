@@ -89,28 +89,37 @@ export default function QueueBoard({
               <div className="flex items-center gap-2">
                 <h4 className="font-bold text-slate-900">
                   {item.patient_name}
+                  {item.patient_id && <span className="text-gray-500 text-sm ml-2 font-normal text-xs uppercase bg-slate-100 px-2 py-0.5 rounded-md">ID: {item.patient_id}</span>}
                 </h4>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${getPriorityColor(item.priority)}`}
                 >
                   {item.priority}
                 </span>
+                {item.priority === "EMERGENCY" && (
+                   <div className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse ml-1" />
+                )}
               </div>
-              <div className="flex items-center gap-3 mt-1">
-                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <Clock size={12} />
+              <div className="flex items-center gap-3 mt-1.5">
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                  <Clock size={12} className="text-blue-500" />
                   <span>
-                    {new Date(item.check_in_time).toLocaleTimeString([], {
+                    Checked in: {new Date(item.check_in_time).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </span>
                 </div>
                 <div
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getStatusBadge(item.status)}`}
+                  className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border ${getStatusBadge(item.status)}`}
                 >
                   {item.status.replace("_", " ")}
                 </div>
+                {item.status === "WAITING" && (
+                  <div className="text-xs text-slate-500 font-medium">
+                    Wait time: {Math.floor((Date.now() - new Date(item.check_in_time).getTime()) / 60000)}m
+                  </div>
+                )}
               </div>
             </div>
           </div>
