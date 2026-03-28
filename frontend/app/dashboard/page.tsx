@@ -6,132 +6,52 @@ import { useEffect } from "react";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, user, isLoading, logout } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        router.push("/login");
-      } else if (user?.role === "RECEPTIONIST") {
-        router.push("/dashboard/receptionist");
-      } else {
-        router.push("/dashboard/doctor");
-      }
+    // Redirect immediately when ready, don't wait for render
+    if (isLoading) return;
+
+    if (!isAuthenticated) {
+      router.replace("/login");
+      return;
     }
+
+    // Role-based redirect with smoother transition
+    const targetPath =
+      user?.role === "RECEPTIONIST"
+        ? "/dashboard/receptionist"
+        : "/dashboard/doctor";
+
+    // Prefetch the route before navigating
+    router.prefetch(targetPath);
+
+    // Use replace instead of push to prevent back button issues
+    router.replace(targetPath);
   }, [isAuthenticated, user, isLoading, router]);
 
-  if (isLoading) {
+  if (isLoading || !isAuthenticated) {
+    const roleLabel = user?.role === "RECEPTIONIST" ? "Receptionist" : "Doctor";
+
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
-          <p className="mt-4 text-gray-700 font-medium">Loading...</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 mb-4">
+            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mt-4">
+            Loading {roleLabel} Dashboard
+          </h2>
+          <p className="text-gray-600 text-sm mt-2">
+            {isLoading
+              ? "Authenticating..."
+              : "Redirecting you to your dashboard..."}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
-
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
-  };
-
-  const dashboardButtons = [
-    { label: "Upload Image", icon: "📸", action: () => router.push("/upload") },
-    {
-      label: "Analysis Results",
-      icon: "📊",
-      action: () => router.push("/results"),
-    },
-    {
-      label: "Patient Records",
-      icon: "👥",
-      action: () => router.push("/patients"),
-    },
-    {
-      label: "Clinical Input",
-      icon: "📝",
-      action: () => router.push("/clinical"),
-    },
-    {
-      label: "Risk Assessment",
-      icon: "⚠️",
-      action: () => router.push("/risk"),
-    },
-    { label: "Settings", icon: "⚙️", action: () => router.push("/settings") },
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="border-b bg-white shadow-sm">
-        <div className="mx-auto max-w-6xl px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Chairside Companion
-          </h1>
-          <button
-            onClick={handleLogout}
-            className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 transition font-medium"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-6xl px-4 py-12">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
-          <p className="mt-2 text-gray-700 font-medium">
-            Welcome to the Dental AI Analysis System
-          </p>
-        </div>
-
-        {/* Button Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {dashboardButtons.map((button, index) => (
-            <button
-              key={index}
-              onClick={button.action}
-              className="group rounded-lg bg-white p-6 shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 active:scale-95"
-            >
-              <div className="mb-3 text-4xl">{button.icon}</div>
-              <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition">
-                {button.label}
-              </h3>
-              <p className="mt-1 text-xs text-gray-700 font-medium">
-                Click to navigate
-              </p>
-            </button>
-          ))}
-        </div>
-
-        {/* Quick Stats */}
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <h3 className="text-gray-700 text-sm font-semibold">
-              Total Analyses
-            </h3>
-            <p className="mt-2 text-3xl font-bold text-gray-900">0</p>
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <h3 className="text-gray-700 text-sm font-semibold">Patients</h3>
-            <p className="mt-2 text-3xl font-bold text-gray-900">0</p>
-          </div>
-          <div className="rounded-lg bg-white p-6 shadow-md">
-            <h3 className="text-gray-700 text-sm font-semibold">
-              System Status
-            </h3>
-            <p className="mt-2 text-lg font-bold text-green-600">
-              ✓ Operational
-            </p>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+  // This page is now pure redirect - content never renders
+  return null;
 }

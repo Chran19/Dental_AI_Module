@@ -17,6 +17,7 @@ import { useAuth } from "@/app/providers";
 export default function ReceptionistQueuePage() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showNotifications, setShowNotifications] = useState(false);
   const { user } = useAuth();
 
   const fetchQueue = async () => {
@@ -86,12 +87,25 @@ export default function ReceptionistQueuePage() {
           >
             <RefreshCcw size={18} className={isLoading ? "animate-spin" : ""} />
           </button>
-          <button
-            className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
-            title="Notifications"
-          >
-            <Bell size={18} />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors relative"
+              title="Notifications"
+            >
+              <Bell size={18} />
+              <span className="absolute top-1 right-1 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                2
+              </span>
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 shadow-lg rounded-xl overflow-hidden z-50">
+                <div className="p-3 border-b border-slate-100 bg-slate-50 font-bold text-slate-800 text-sm">Alerts</div>
+                <div className="p-3 border-b border-slate-50 text-xs text-slate-700 hover:bg-slate-50">Charlie Brown is taking 15m longer than usual.</div>
+                <div className="p-3 text-xs text-slate-700 hover:bg-slate-50">Bob Johnson (Urgent) has been waiting 20min.</div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

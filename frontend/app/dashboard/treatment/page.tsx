@@ -193,7 +193,7 @@ export default function TreatmentPage() {
   const handleManagePlan = (planId: string) => {
     setSelectedPlanId(planId);
     // In a real app, this would open a detailed management modal or page
-    alert(`Managing plan: ${planId}`);
+    setShowModal(true);
   };
 
   const handleCreatePlan = () => {
