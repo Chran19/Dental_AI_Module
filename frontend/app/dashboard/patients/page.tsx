@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, Users, Filter } from "lucide-react";
 import PatientTable from "@/components/patients/PatientTable";
 import PatientSearch from "@/components/patients/PatientSearch";
 import { Patient } from "@/lib/types/patient";
 import Link from "next/link";
-import { fetchAPI } from "@/lib/api";
+import { fetchPatients } from "@/lib/store";
 
 export default function PatientsDashboardPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -16,15 +16,16 @@ export default function PatientsDashboardPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     gender: "all",
-    registrationDate: "all", // all, week, month, year
+    registrationDate: "all",
   });
 
-  const fetchPatients = async () => {
+  const loadPatients = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetchAPI("/patients", { method: "GET" });
-      setPatients(response);
-      setFilteredPatients(response);
+      const data = await fetchPatients();
+      setPatients(data);
+      setFilteredPatients(data);
+      setError(null);
     } catch (err: any) {
       console.error("Error fetching patients:", err);
       setError(
@@ -33,11 +34,11 @@ export default function PatientsDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchPatients();
-  }, []);
+    loadPatients();
+  }, [loadPatients]);
 
   const handleSearch = (query: string) => {
     if (!query.trim()) {
@@ -49,6 +50,7 @@ export default function PatientsDashboardPage() {
     const filtered = patients.filter(
       (p) =>
         `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
+        p.contact_email?.toLowerCase().includes(q) ||
         p.email?.toLowerCase().includes(q) ||
         p.id.toLowerCase().includes(q),
     );
@@ -58,15 +60,11 @@ export default function PatientsDashboardPage() {
   const applyFilters = () => {
     let result = [...patients];
 
-    // Apply gender filter
     if (filters.gender !== "all") {
       result = result.filter(
         (p) => p.gender?.toLowerCase() === filters.gender.toLowerCase(),
       );
     }
-
-    // Apply registration date filter (would need created_at field)
-    // For now, just demonstration
 
     setFilteredPatients(result);
     setShowFilters(false);
@@ -81,7 +79,7 @@ export default function PatientsDashboardPage() {
             Patient Records
           </h1>
           <p className="text-slate-700 text-sm mt-1 font-medium">
-            Manage and search patient database
+            Manage and search patient database ({patients.length} total)
           </p>
         </div>
 
@@ -132,7 +130,6 @@ export default function PatientsDashboardPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Gender Filter */}
               <div>
                 <label className="block text-sm font-semibold text-slate-900 mb-2">
                   Gender
@@ -151,7 +148,6 @@ export default function PatientsDashboardPage() {
                 </select>
               </div>
 
-              {/* Registration Date Filter */}
               <div>
                 <label className="block text-sm font-semibold text-slate-900 mb-2">
                   Registration Date
@@ -159,7 +155,10 @@ export default function PatientsDashboardPage() {
                 <select
                   value={filters.registrationDate}
                   onChange={(e) =>
-                    setFilters({ ...filters, registrationDate: e.target.value })
+                    setFilters({
+                      ...filters,
+                      registrationDate: e.target.value,
+                    })
                   }
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import QueueBoard from "@/components/queue/QueueBoard";
 import { QueueItem } from "@/lib/types/queue";
-import { fetchAPI } from "@/lib/api";
+import { fetchQueue, updateQueueStatus } from "@/lib/store";
 import {
   Calendar,
   RefreshCcw,
@@ -11,8 +11,10 @@ import {
   Users,
   Clock,
   CheckCircle,
+  UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
+import Link from "next/link";
 
 export default function ReceptionistQueuePage() {
   const [items, setItems] = useState<QueueItem[]>([]);
@@ -27,10 +29,9 @@ export default function ReceptionistQueuePage() {
   const checkAlerts = (currentItems: QueueItem[]) => {
     const alerts: any[] = [];
     currentItems.forEach((item) => {
-      if (item.status === "WAITING") {
-        const waitMinutes = Math.floor(
-          (Date.now() - new Date(item.check_in_time).getTime()) / 60000
-        );
+      if (item.status === "Waiting") {
+        const checkInTime = item.check_in_time ? new Date(item.check_in_time).getTime() : Date.now();
+        const waitMinutes = Math.floor((Date.now() - checkInTime) / 60000);
         if (waitMinutes > 30) {
           alerts.push({
             id: item.id,
@@ -42,61 +43,34 @@ export default function ReceptionistQueuePage() {
     setNotifications(alerts);
   };
 
-  const fetchQueue = async () => {
+  const loadQueue = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await fetchAPI("/queue/active", { method: "GET" });
-      setItems(response);
-      checkAlerts(response);
+      const data = await fetchQueue();
+      setItems(data);
+      checkAlerts(data);
     } catch (err) {
       console.error("Error fetching queue:", err);
-      // Fallback for development/missing endpoint
-      const mockItems = [
-        {
-          id: "1",
-          patient_id: "p1",
-          patient_name: "Alice Smith",
-          check_in_time: new Date().toISOString(),
-          status: "WAITING",
-          priority: "NORMAL",
-        },
-        {
-          id: "2",
-          patient_id: "p2",
-          patient_name: "Bob Johnson",
-          check_in_time: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-          status: "WAITING",
-          priority: "URGENT",
-        },
-        {
-          id: "3",
-          patient_id: "p3",
-          patient_name: "Charlie Brown",
-          check_in_time: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-          status: "IN_CONSULTATION",
-          priority: "NORMAL",
-        },
-      ];
-      setItems(mockItems as any[]);
-      checkAlerts(mockItems as any[]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleStatusChange = async (id: string, newStatus: QueueItem["status"]) => {
+  const handleStatusChange = async (
+    id: string,
+    newStatus: QueueItem["status"],
+  ) => {
     // Optimistic update
     setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
+      prev.map((item) =>
+        item.id === id ? { ...item, status: newStatus } : item,
+      ),
     );
     try {
-      await fetchAPI(`/queue/${id}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: newStatus }),
-      });
+      await updateQueueStatus(id, newStatus);
     } catch (err) {
       console.error("Status update failed:", err);
-      fetchQueue(); // Revert on error
+      loadQueue(); // Revert on error
     }
   };
 
@@ -105,16 +79,20 @@ export default function ReceptionistQueuePage() {
 
     // Priority sorting
     result.sort((a, b) => {
-      const priorityOrder: Record<string, number> = { EMERGENCY: 0, URGENT: 1, NORMAL: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
+      const priorityOrder: Record<string, number> = {
+        EMERGENCY: 0,
+        URGENT: 1,
+        NORMAL: 2,
+      };
+      return (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2);
     });
 
     // Filtering
     if (searchQuery) {
       result = result.filter(
         (i) =>
-          i.patient_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          i.patient_id.toLowerCase().includes(searchQuery.toLowerCase())
+          i.patient_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          i.patient_id?.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
     if (filterPriority !== "all") {
@@ -125,12 +103,12 @@ export default function ReceptionistQueuePage() {
   }, [items, searchQuery, filterPriority]);
 
   useEffect(() => {
-    fetchQueue();
+    loadQueue();
     const interval = setInterval(() => {
-        fetchQueue();
-    }, 30000);
+      loadQueue();
+    }, 15000); // Refresh every 15s
     return () => clearInterval(interval);
-  }, []);
+  }, [loadQueue]);
 
   return (
     <div className="space-y-6">
@@ -146,8 +124,15 @@ export default function ReceptionistQueuePage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/patients/new"
+            className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <UserPlus size={16} />
+            Patient Intake
+          </Link>
           <button
-            onClick={fetchQueue}
+            onClick={loadQueue}
             className="p-2 bg-white border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
             title="Refresh Queue"
           >
@@ -160,19 +145,30 @@ export default function ReceptionistQueuePage() {
               title="Notifications"
             >
               <Bell size={18} />
-              <span className="absolute top-1 right-1 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                {notifications.length}
-              </span>
+              {notifications.length > 0 && (
+                <span className="absolute top-1 right-1 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                  {notifications.length}
+                </span>
+              )}
             </button>
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 shadow-lg rounded-xl overflow-hidden z-50">
-                <div className="p-3 border-b border-slate-100 bg-slate-50 font-bold text-slate-800 text-sm">Alerts & Notifications</div>
+                <div className="p-3 border-b border-slate-100 bg-slate-50 font-bold text-slate-800 text-sm">
+                  Alerts & Notifications
+                </div>
                 {notifications.length === 0 ? (
-                   <div className="p-4 text-xs text-slate-500 text-center font-medium">No active alerts. Queue is running smoothly.</div>
+                  <div className="p-4 text-xs text-slate-500 text-center font-medium">
+                    No active alerts. Queue is running smoothly.
+                  </div>
                 ) : (
-                   notifications.map((n, i) => (
-                      <div key={i} className="p-3 border-b border-slate-50 text-xs text-slate-700 hover:bg-red-50 font-bold text-red-700">⚠️ {n.message}</div>
-                   ))
+                  notifications.map((n, i) => (
+                    <div
+                      key={i}
+                      className="p-3 border-b border-slate-50 text-xs text-slate-700 hover:bg-red-50 font-bold text-red-700"
+                    >
+                      ⚠️ {n.message}
+                    </div>
+                  ))
                 )}
               </div>
             )}
@@ -184,15 +180,15 @@ export default function ReceptionistQueuePage() {
         <StatCard
           icon={Users}
           label="Total Waiting"
-          value={items.filter((i) => i.status === "WAITING").length.toString()}
-          sub={`~${items.filter((i) => i.status === "WAITING").length * 20} min est wait time`}
+          value={items.filter((i) => i.status === "Waiting").length.toString()}
+          sub={`~${items.filter((i) => i.status === "Waiting").length * 20} min est wait time`}
           color="bg-blue-600"
         />
         <StatCard
           icon={CheckCircle}
           label="In Consultation"
           value={items
-            .filter((i) => i.status === "IN_CONSULTATION")
+            .filter((i) => i.status === "In_Consultation")
             .length.toString()}
           sub="Currently with doctors"
           color="bg-green-600"
@@ -201,7 +197,7 @@ export default function ReceptionistQueuePage() {
           icon={Clock}
           label="High Priority"
           value={items
-            .filter((i) => i.priority !== "NORMAL" && i.status === "WAITING")
+            .filter((i) => i.priority !== "NORMAL" && i.status === "Waiting")
             .length.toString()}
           sub="Requires immediate attention"
           color="bg-red-600"

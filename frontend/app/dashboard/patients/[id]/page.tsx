@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers";
+import { useParams } from "next/navigation";
+import { Patient } from "@/lib/types/patient";
+import { fetchPatientById } from "@/lib/store";
 import {
   User,
   Phone,
   Mail,
-  MapPin,
   Calendar,
   Edit2,
   DollarSign,
@@ -14,68 +16,140 @@ import {
   MoreVertical,
   Pill,
   FileText,
+  ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
-interface PatientProfile {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  age: number;
-  gender: string;
-  address: string;
-  date_of_birth: string;
-  medical_conditions: string[];
-  allergies: string[];
-  insurance: string;
-  last_visit: string;
-  total_visits: number;
-  balance: number;
-}
-
-export default function PatientProfilePage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function PatientProfilePage() {
   const { isAuthenticated } = useAuth();
-  const [patient, setPatient] = useState<PatientProfile>({
-    id: params.id,
-    name: "John Doe",
-    email: "john@example.com",
-    phone: "(555) 123-4567",
-    age: 42,
-    gender: "Male",
-    address: "123 Main St, City, State 12345",
-    date_of_birth: "1982-03-15",
-    medical_conditions: ["Hypertension", "Type 2 Diabetes"],
-    allergies: ["Penicillin"],
-    insurance: "Blue Cross Blue Shield",
-    last_visit: "2024-03-20",
-    total_visits: 12,
-    balance: 150.0,
-  });
+  const params = useParams();
+  const patientId = params?.id as string;
 
+  const [patient, setPatient] = useState<Patient | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+
+  useEffect(() => {
+    if (!patientId) return;
+
+    const loadPatient = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await fetchPatientById(patientId);
+        if (data) {
+          setPatient(data);
+        } else {
+          setError("Patient not found");
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to load patient");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPatient();
+  }, [patientId]);
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="animate-spin text-blue-600" size={32} />
+          <p className="text-slate-500 text-sm font-medium">
+            Loading patient record...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !patient) {
+    return (
+      <div className="max-w-md mx-auto mt-20 text-center space-y-4">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-600 mb-2">
+          <AlertTriangle size={32} />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900">
+          Patient Not Found
+        </h2>
+        <p className="text-slate-500">
+          {error ||
+            "The patient record you're looking for doesn't exist or has been removed."}
+        </p>
+        <Link
+          href="/dashboard/patients"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
+        >
+          <ArrowLeft size={16} /> Back to Patients
+        </Link>
+      </div>
+    );
+  }
+
+  // Helper: get display values
+  const fullName = `${patient.first_name} ${patient.last_name}`;
+  const email =
+    patient.contact_email || patient.email || "Not provided";
+  const phone =
+    patient.contact_phone || patient.phone || "Not provided";
+  const dob = patient.dob || patient.date_of_birth || null;
+  const gender = patient.gender || "Not specified";
+  const allergies: string[] =
+    patient.medical_history?.allergies || [];
+  const reasonOfVisit =
+    patient.reason_of_visit || patient.medical_history?.reason_of_visit || null;
+
+  const getAge = (dobStr: string | null) => {
+    if (!dobStr) return null;
+    const today = new Date();
+    const birthDate = new Date(dobStr);
+    let ageCalc = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      ageCalc--;
+    }
+    return ageCalc;
+  };
+
+  const age = getAge(dob);
 
   return (
     <div className="space-y-6">
+      {/* Back link */}
+      <Link
+        href="/dashboard/patients"
+        className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-medium text-sm"
+      >
+        <ArrowLeft size={16} /> Back to Patient Records
+      </Link>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
-            {patient.name.charAt(0)}
+            {patient.first_name?.charAt(0) || "?"}
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{patient.name}</h1>
-            <p className="text-gray-600">Patient ID: {patient.id}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{fullName}</h1>
+            <p className="text-gray-600 text-sm">
+              Patient ID: {patient.id?.substring(0, 8)}...
+            </p>
+            {patient.created_at && (
+              <p className="text-gray-400 text-xs mt-0.5">
+                Registered:{" "}
+                {new Date(patient.created_at).toLocaleDateString()}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="flex gap-2">
           <Link
-            href={`/dashboard/patients/${params.id}/edit`}
+            href={`/dashboard/patients/${patientId}/edit`}
             className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Edit2 size={18} />
@@ -103,12 +177,25 @@ export default function PatientProfilePage({
       </div>
 
       {/* Alert if allergies */}
-      {patient.allergies.length > 0 && (
+      {allergies.length > 0 && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex gap-3">
           <AlertTriangle className="text-red-600 flex-shrink-0" size={20} />
           <div>
             <h3 className="font-semibold text-red-900">Allergies</h3>
-            <p className="text-red-700">{patient.allergies.join(", ")}</p>
+            <p className="text-red-700">{allergies.join(", ")}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Reason of Visit */}
+      {reasonOfVisit && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex gap-3">
+          <FileText className="text-purple-600 flex-shrink-0" size={20} />
+          <div>
+            <h3 className="font-semibold text-purple-900">
+              Latest Reason of Visit
+            </h3>
+            <p className="text-purple-700">{reasonOfVisit}</p>
           </div>
         </div>
       )}
@@ -129,7 +216,7 @@ export default function PatientProfilePage({
                   <p className="text-xs text-gray-700 font-semibold uppercase">
                     Phone
                   </p>
-                  <p className="text-gray-900 font-medium">{patient.phone}</p>
+                  <p className="text-gray-900 font-medium">{phone}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -138,18 +225,16 @@ export default function PatientProfilePage({
                   <p className="text-xs text-gray-700 font-semibold uppercase">
                     Email
                   </p>
-                  <p className="text-gray-900 font-medium">{patient.email}</p>
+                  <p className="text-gray-900 font-medium">{email}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <MapPin className="text-gray-400" size={20} />
+                <User className="text-gray-400" size={20} />
                 <div>
                   <p className="text-xs text-gray-700 font-semibold uppercase">
-                    Address
+                    Gender
                   </p>
-                  <p className="text-gray-900 font-medium text-sm">
-                    {patient.address}
-                  </p>
+                  <p className="text-gray-900 font-medium">{gender}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -159,7 +244,9 @@ export default function PatientProfilePage({
                     DOB / Age
                   </p>
                   <p className="text-gray-900 font-medium">
-                    {patient.date_of_birth} ({patient.age}y)
+                    {dob
+                      ? `${new Date(dob).toLocaleDateString()} ${age !== null ? `(${age}y)` : ""}`
+                      : "Not provided"}
                   </p>
                 </div>
               </div>
@@ -178,14 +265,22 @@ export default function PatientProfilePage({
                   Medical Conditions
                 </h3>
                 <div className="space-y-2">
-                  {patient.medical_conditions.map((condition, idx) => (
-                    <div
-                      key={idx}
-                      className="px-3 py-2 bg-blue-50 rounded-lg text-sm"
-                    >
-                      {condition}
-                    </div>
-                  ))}
+                  {patient.medical_history?.conditions?.length ? (
+                    patient.medical_history.conditions.map(
+                      (condition: string, idx: number) => (
+                        <div
+                          key={idx}
+                          className="px-3 py-2 bg-blue-50 rounded-lg text-sm"
+                        >
+                          {condition}
+                        </div>
+                      ),
+                    )
+                  ) : (
+                    <p className="text-gray-500 text-sm">
+                      No conditions recorded
+                    </p>
+                  )}
                 </div>
               </div>
               <div>
@@ -194,8 +289,8 @@ export default function PatientProfilePage({
                   Known Allergies
                 </h3>
                 <div className="space-y-2">
-                  {patient.allergies.length > 0 ? (
-                    patient.allergies.map((allergy, idx) => (
+                  {allergies.length > 0 ? (
+                    allergies.map((allergy: string, idx: number) => (
                       <div
                         key={idx}
                         className="px-3 py-2 bg-red-50 rounded-lg text-sm font-medium text-red-700"
@@ -211,64 +306,76 @@ export default function PatientProfilePage({
             </div>
           </div>
 
-          {/* Recent Visits */}
+          {/* Recent Visits / Activity */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
               <FileText size={20} className="text-purple-600" />
-              Recent Activity
+              Patient Record
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between items-center py-3 border-b border-gray-200">
-                <p className="text-gray-900">Last dental examination</p>
+                <p className="text-gray-900">Registration Date</p>
                 <p className="text-sm text-gray-600">
-                  {new Date(patient.last_visit).toLocaleDateString()}
+                  {patient.created_at
+                    ? new Date(patient.created_at).toLocaleDateString()
+                    : "N/A"}
                 </p>
               </div>
-              <div className="flex justify-between items-center py-3">
-                <p className="text-gray-900">Total visits</p>
-                <p className="font-semibold text-gray-900">
-                  {patient.total_visits}
+              <div className="flex justify-between items-center py-3 border-b border-gray-200">
+                <p className="text-gray-900">Last Updated</p>
+                <p className="text-sm text-gray-600">
+                  {patient.updated_at
+                    ? new Date(patient.updated_at).toLocaleDateString()
+                    : "N/A"}
                 </p>
               </div>
+              {patient.doctor_id && (
+                <div className="flex justify-between items-center py-3">
+                  <p className="text-gray-900">Assigned Doctor ID</p>
+                  <p className="text-sm text-gray-600 font-mono">
+                    {patient.doctor_id.substring(0, 8)}...
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right Column - Account Info */}
+        {/* Right Column - Quick Info */}
         <div className="space-y-6">
-          {/* Insurance */}
+          {/* Patient Summary */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Insurance</h3>
-            <p className="text-gray-600 text-sm">{patient.insurance}</p>
-          </div>
-
-          {/* Account Balance */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-gray-900">Account Balance</h3>
-              <DollarSign className="text-blue-600" size={20} />
+            <h3 className="font-semibold text-gray-900 mb-3">
+              Patient Summary
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">ID:</span>
+                <span className="font-mono text-gray-900 text-xs bg-gray-100 px-2 py-1 rounded">
+                  {patient.id?.substring(0, 12)}...
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Status:</span>
+                <span className="text-green-700 bg-green-50 px-2 py-0.5 rounded text-xs font-bold">
+                  Active
+                </span>
+              </div>
             </div>
-            <p
-              className={`text-3xl font-bold ${
-                patient.balance > 0 ? "text-red-600" : "text-green-600"
-              }`}
-            >
-              ${patient.balance.toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              {patient.balance > 0 ? "Amount due" : "Paid"}
-            </p>
           </div>
 
           {/* Quick Actions */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
             <div className="space-y-2">
+              <Link
+                href="/dashboard/patients/new"
+                className="w-full px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors block"
+              >
+                New Visit / Check-in
+              </Link>
               <button className="w-full px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                 Print Records
-              </button>
-              <button className="w-full px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                Send Bill
               </button>
               <button className="w-full px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                 Schedule Appointment

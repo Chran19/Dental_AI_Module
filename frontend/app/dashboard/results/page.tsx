@@ -36,7 +36,7 @@ export default function ResultsPage() {
         const resultsArray = Array.isArray(data) ? data : [];
         
         // Mocking some extra data on results for better UI since real data might be bare JSON
-        const enhancedResults = resultsArray.map((r, i) => ({
+        const enhancedResults = resultsArray.map((r: Record<string, any>, i: number) => ({
            ...r,
            analysis_type: r.analysis_type || (Math.random() > 0.5 ? "Periapical Lesion" : "Caries Detection"),
            patient_name: r.patient_name || `Patient 00${i+1}X`,
