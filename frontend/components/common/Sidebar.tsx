@@ -18,13 +18,17 @@ import {
   X,
   BookOpen,
   Pill,
+  ChevronDown,
+  ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 
 interface MenuItem {
   title: string;
-  href: string;
+  href?: string;
   icon: any;
   roles?: string[];
+  submenu?: MenuItem[];
 }
 
 const menuItems: MenuItem[] = [
@@ -34,52 +38,87 @@ const menuItems: MenuItem[] = [
     icon: LayoutDashboard,
   },
   {
-    title: "Queue Board",
-    href: "/dashboard/queue",
-    icon: BarChart3,
-    roles: ["RECEPTIONIST", "ADMIN"],
-  },
-  {
-    title: "Patient Intake",
-    href: "/dashboard/patients/new",
+    title: "Reception",
     icon: Users,
     roles: ["RECEPTIONIST", "ADMIN"],
+    submenu: [
+      {
+        title: "Queue Board",
+        href: "/dashboard/queue",
+        icon: BarChart3,
+      },
+      {
+        title: "Patients View",
+        href: "/dashboard/patients",
+        icon: Users,
+      },
+      {
+        title: "Patient Intake",
+        href: "/dashboard/patients/new",
+        icon: ClipboardList,
+      },
+    ],
   },
   {
-    title: "Clinical",
-    href: "/dashboard/clinical",
+    title: "Queue Management",
+    icon: BarChart3,
+    roles: ["DOCTOR", "ADMIN"],
+    submenu: [
+      {
+        title: "Queue Board",
+        href: "/dashboard/queue",
+        icon: BarChart3,
+      },
+      {
+        title: "Patients View",
+        href: "/dashboard/patients",
+        icon: Users,
+      },
+    ],
+  },
+  {
+    title: "Clinical Actions",
     icon: Stethoscope,
     roles: ["DOCTOR", "ADMIN"],
+    submenu: [
+      {
+        title: "Clinical Input",
+        href: "/dashboard/clinical",
+        icon: Stethoscope,
+      },
+      {
+        title: "Diagnosis",
+        href: "/dashboard/diagnosis",
+        icon: BookOpen,
+      },
+      {
+        title: "Treatment",
+        href: "/dashboard/treatment",
+        icon: Pill,
+      },
+      {
+        title: "Results",
+        href: "/dashboard/results",
+        icon: FileText,
+      },
+    ],
   },
   {
-    title: "Diagnosis",
-    href: "/dashboard/diagnosis",
-    icon: BookOpen,
-    roles: ["DOCTOR", "ADMIN"],
-  },
-  {
-    title: "Treatment",
-    href: "/dashboard/treatment",
-    icon: Pill,
-    roles: ["DOCTOR", "ADMIN"],
-  },
-  {
-    title: "Risk",
-    href: "/dashboard/risk",
+    title: "Risk & Diagnostics",
     icon: ShieldAlert,
     roles: ["DOCTOR", "ADMIN"],
-  },
-  {
-    title: "Upload",
-    href: "/dashboard/upload",
-    icon: Upload,
-    roles: ["DOCTOR", "ADMIN"],
-  },
-  {
-    title: "Results",
-    href: "/dashboard/results",
-    icon: FileText,
-    roles: ["DOCTOR", "ADMIN"],
+    submenu: [
+      {
+        title: "Risk",
+        href: "/dashboard/risk",
+        icon: ShieldAlert,
+      },
+      {
+        title: "Upload",
+        href: "/dashboard/upload",
+        icon: Upload,
+      },
+    ],
   },
   {
     title: "Settings",
@@ -90,6 +129,7 @@ const menuItems: MenuItem[] = [
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
@@ -104,6 +144,13 @@ export default function Sidebar() {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem("sidebar-collapsed", JSON.stringify(newState));
+  };
+
+  const toggleSubmenu = (title: string) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [title]: !prev[title]
+    }));
   };
 
   const filteredItems = menuItems.filter(
@@ -140,26 +187,82 @@ export default function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {filteredItems.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const hasSubmenu = item.submenu && item.submenu.length > 0;
+          const isOpen = openMenus[item.title];
+          
+          let isActive = false;
+          if (item.href) {
+            isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          } else if (hasSubmenu) {
+            isActive = item.submenu!.some(sub => pathname === sub.href || pathname.startsWith(`${sub.href}/`));
+          }
+
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                isActive
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30"
-                  : "text-slate-300 hover:bg-slate-700 hover:text-white"
-              } ${isCollapsed ? "justify-center" : ""}`}
-              title={isCollapsed ? item.title : ""}
-            >
-              <item.icon size={22} className="flex-shrink-0" />
-              {!isCollapsed && (
-                <span className="font-medium text-sm">{item.title}</span>
+            <div key={item.title} className="mb-1">
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-900/30"
+                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                  } ${isCollapsed ? "justify-center" : ""}`}
+                  title={isCollapsed ? item.title : ""}
+                >
+                  <item.icon size={22} className="flex-shrink-0" />
+                  {!isCollapsed && (
+                    <span className="font-medium text-sm">{item.title}</span>
+                  )}
+                </Link>
+              ) : (
+                <button
+                  onClick={() => toggleSubmenu(item.title)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
+                    isActive && !isOpen
+                      ? "bg-slate-800 text-white" 
+                      : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                  } ${isCollapsed ? "justify-center" : ""}`}
+                  title={isCollapsed ? item.title : ""}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon size={22} className="flex-shrink-0" />
+                    {!isCollapsed && (
+                      <span className="font-medium text-sm">{item.title}</span>
+                    )}
+                  </div>
+                  {!isCollapsed && (
+                    <div className="text-slate-400">
+                      {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </div>
+                  )}
+                </button>
               )}
-            </Link>
+
+              {/* Submenu items */}
+              {hasSubmenu && !isCollapsed && isOpen && (
+                <div className="pl-9 pr-2 mt-1 space-y-1">
+                  {item.submenu!.map((subItem) => {
+                    const isSubActive = pathname === subItem.href || pathname.startsWith(`${subItem.href}/`);
+                    return (
+                      <Link
+                        key={subItem.title}
+                        href={subItem.href || "#"}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm ${
+                          isSubActive
+                            ? "bg-blue-600/20 text-blue-400 font-medium"
+                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                        }`}
+                      >
+                        <subItem.icon size={16} className="opacity-70" />
+                        <span>{subItem.title}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

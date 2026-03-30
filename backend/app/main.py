@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
+from app.database import engine, Base
 from app.routes.clinical_input import router as clinical_input_router
 from app.routes.risk_engine import router as risk_engine_router
 from app.routes.diagnosis import router as diagnosis_router
@@ -42,7 +43,8 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting %s v%s", settings.APP_NAME, settings.APP_VERSION)
-    # TODO: Run Alembic migrations or verify DB connectivity here
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
     logger.info("Shutting down %s", settings.APP_NAME)
 

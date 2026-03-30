@@ -68,7 +68,7 @@ class Patient(Base):
     )
     first_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     last_name: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
-    dob: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    dob: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     gender: Mapped[str] = mapped_column(
         SAEnum("Male", "Female", "Other", name="gender_enum"),
         nullable=False,
