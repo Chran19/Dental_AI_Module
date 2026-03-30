@@ -1,6 +1,6 @@
 """
 Module 5 — Treatment Suggestion API Route
-Endpoint: POST /api/treatment/suggest
+Endpoint: POST /treatment/suggest
 Accepts diagnosis + patient history → returns ranked treatment recommendations.
 """
 
@@ -8,15 +8,20 @@ from __future__ import annotations
 
 import logging
 import uuid
+from typing import List, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from app.database import get_db
 from app.schemas.treatment import (
     TreatmentRequest,
     TreatmentResponse,
     Module5Output,
 )
 from app.services.treatment_service import TreatmentService
+from app.models.db_models import ClinicalCase
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +44,47 @@ async def get_current_doctor_id(request: Request) -> uuid.UUID:
 
 
 # ═════════════════════════════════════════════════════════════════════════════════
-# POST /api/treatment/suggest
+# GET /treatment?patient_id={patient_id}
+# ═════════════════════════════════════════════════════════════════════════════════
+
+@router.get("/")
+async def get_treatments_by_patient(
+    patient_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> List[Any]:
+    """
+    Retrieve all treatment plans (Module 5 outputs) for a patient.
+    Returns treatment_json from all ClinicalCases for this patient.
+    """
+    try:
+        query = select(ClinicalCase).where(
+            ClinicalCase.patient_id == patient_id,
+            ClinicalCase.treatment_json != None,
+        )
+        result = await db.execute(query)
+        cases = result.scalars().all()
+        
+        treatments = []
+        for case in cases:
+            if case.treatment_json:
+                treatments.append({
+                    "case_id": str(case.id),
+                    "patient_id": str(case.patient_id),
+                    "plan_date": case.created_at.isoformat() if case.created_at else None,
+                    **case.treatment_json,  # Spread the treatment data
+                })
+        
+        return treatments
+    except Exception as e:
+        logger.exception("Failed to retrieve treatment plans for patient %s: %s", patient_id, str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Failed to retrieve treatment plans"},
+        )
+
+
+# ═════════════════════════════════════════════════════════════════════════════════
+# POST /treatment/suggest
 # ═════════════════════════════════════════════════════════════════════════════════
 
 @router.post(

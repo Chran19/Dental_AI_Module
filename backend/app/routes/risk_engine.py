@@ -8,9 +8,14 @@ from __future__ import annotations
 
 import logging
 import uuid
+from typing import Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
+from app.models.db_models import ClinicalCase
 from app.schemas.risk_engine import (
     Module2Output,
     RiskEngineRequest,
@@ -135,3 +140,47 @@ async def assess_from_m1_input(
     Frontend can call this after receiving M1 output.
     """
     return await assess_risk(payload, doctor_id, service)
+
+
+# ═════════════════════════════════════════════════════════════════════════════════
+# GET /risk-engine (Retrieve risk assessments by patient_id)
+# ═════════════════════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/",
+    response_model=List[Any],
+    status_code=status.HTTP_200_OK,
+    summary="Retrieve risk assessments for a patient",
+    description="Retrieves all risk assessment results for a specific patient from clinical cases.",
+)
+async def get_risk_assessments_by_patient(
+    patient_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> List[Any]:
+    """
+    Retrieve all risk assessments for a patient by querying ClinicalCase.risk_assessment_json.
+    Returns a list of risk assessment results with case metadata.
+    """
+    try:
+        query = select(ClinicalCase).where(
+            ClinicalCase.patient_id == patient_id,
+            ClinicalCase.risk_assessment_json != None,
+        )
+        result = await db.execute(query)
+        cases = result.scalars().all()
+
+        return [
+            {
+                "case_id": str(case.id),
+                "patient_id": str(case.patient_id),
+                "assessment_date": case.created_at.isoformat() if case.created_at else None,
+                **case.risk_assessment_json,
+            }
+            for case in cases
+        ]
+    except Exception as e:
+        logger.exception("Error retrieving risk assessments")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Failed to retrieve risk assessments."},
+        )

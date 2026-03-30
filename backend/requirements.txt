@@ -36,6 +36,7 @@ scipy==1.11.2
 python-dotenv==1.0.1
 python-multipart==0.0.20
 requests==2.31.0
+reportlab==4.0.9
 
 # Testing
 pytest==8.3.4

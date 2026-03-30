@@ -8,15 +8,20 @@ from __future__ import annotations
 
 import logging
 import uuid
+from typing import List, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from app.database import get_db
 from app.schemas.diagnosis import (
     DiagnosisRequest,
     DiagnosisResponse,
     Module3Output,
 )
 from app.services.diagnosis_service import DiagnosisService
+from app.models.db_models import ClinicalCase
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +43,47 @@ async def get_current_doctor_id(request: Request) -> uuid.UUID:
 
 
 # ═════════════════════════════════════════════════════════════════════════════════
-# POST /api/diagnosis/differential
+# GET /diagnosis?patient_id={patient_id}
+# ═════════════════════════════════════════════════════════════════════════════════
+
+@router.get("/")
+async def get_diagnoses_by_patient(
+    patient_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> List[Any]:
+    """
+    Retrieve all diagnoses (Module 3 outputs) for a patient.
+    Returns ai_diagnosis_log from all ClinicalCases for this patient.
+    """
+    try:
+        query = select(ClinicalCase).where(
+            ClinicalCase.patient_id == patient_id,
+            ClinicalCase.ai_diagnosis_log != None,
+        )
+        result = await db.execute(query)
+        cases = result.scalars().all()
+        
+        diagnoses = []
+        for case in cases:
+            if case.ai_diagnosis_log:
+                diagnoses.append({
+                    "case_id": str(case.id),
+                    "patient_id": str(case.patient_id),
+                    "diagnosis_date": case.created_at.isoformat() if case.created_at else None,
+                    **case.ai_diagnosis_log,  # Spread the diagnosis data
+                })
+        
+        return diagnoses
+    except Exception as e:
+        logger.exception("Failed to retrieve diagnoses for patient %s: %s", patient_id, str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Failed to retrieve diagnoses"},
+        )
+
+
+# ═════════════════════════════════════════════════════════════════════════════════
+# POST /diagnosis/differential
 # ═════════════════════════════════════════════════════════════════════════════════
 
 @router.post(

@@ -3,12 +3,13 @@ Image Analysis Routes: API endpoints for Phase 4 dental image analysis
 Handles radiograph upload, analysis, and integration with diagnosis engine
 """
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, status
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Any
 import logging
 import os
 import sys
+import uuid
 from pathlib import Path
 from datetime import datetime
 import tempfile
@@ -16,8 +17,13 @@ import tempfile
 # Add parent directories to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from ml.image_analysis.inference.image_analyzer_service import create_image_analyzer_service
 from app.utils import convert_to_serializable
+from app.database import get_db
+from app.models.db_models import Image
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/image-analysis", tags=["Image Analysis"])
@@ -296,3 +302,46 @@ async def get_status():
     except Exception as e:
         logger.error(f"Error checking status: {e}")
         raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.get("/")
+async def get_images_by_patient(
+    patient_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> List[Any]:
+    """
+    Retrieve all images for a patient.
+    Returns list of image metadata and analysis records.
+    
+    Parameters:
+    - patient_id: UUID of patient
+    
+    Returns:
+    - List of image records with analysis metadata
+    """
+    try:
+        query = select(Image).where(Image.patient_id == patient_id)
+        result = await db.execute(query)
+        images = result.scalars().all()
+
+        return [
+            {
+                "id": str(image.id),
+                "patient_id": str(image.patient_id),
+                "case_id": str(image.case_id) if image.case_id else None,
+                "modality": image.modality,
+                "file_url": image.file_url,
+                "file_path": image.file_path,
+                "file_type": image.file_type,
+                "file_size_mb": image.file_size_mb,
+                "notes": image.notes,
+                "upload_date": image.upload_date.isoformat() if image.upload_date else None,
+            }
+            for image in images
+        ]
+    except Exception as e:
+        logger.exception("Error retrieving images")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Failed to retrieve images."},
+        )
