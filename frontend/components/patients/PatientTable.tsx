@@ -84,16 +84,16 @@ export default function PatientTable({
                 </td>
                 <td className="px-6 py-4">
                   <div className="space-y-1">
-                    {patient.phone && (
+                    {(patient.contact_phone || patient.phone) && (
                       <div className="flex items-center gap-2 text-xs text-slate-600">
                         <Phone size={12} className="text-slate-400" />
-                        <span>{patient.phone}</span>
+                        <span>{patient.contact_phone || patient.phone}</span>
                       </div>
                     )}
-                    {patient.email && (
+                    {(patient.contact_email || patient.email) && (
                       <div className="flex items-center gap-2 text-xs text-slate-600">
                         <Mail size={12} className="text-slate-400" />
-                        <span>{patient.email}</span>
+                        <span>{patient.contact_email || patient.email}</span>
                       </div>
                     )}
                   </div>

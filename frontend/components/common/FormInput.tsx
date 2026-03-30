@@ -5,6 +5,15 @@ interface FormInputProps {
   helpText?: string;
   isTextarea?: boolean;
   rows?: number;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  value?: string | number;
+  type?: string;
+  placeholder?: string;
+  name?: string;
+  id?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  className?: string;
   [key: string]: any;
 }
 

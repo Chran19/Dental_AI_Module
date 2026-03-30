@@ -41,6 +41,13 @@ export default function QueueBoard({
         <p className="text-slate-700 font-medium">
           No patients are currently waiting for consultation.
         </p>
+        <Link
+          href="/dashboard/patients/new"
+          className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors"
+        >
+          <User size={16} />
+          Add Patient Intake
+        </Link>
       </div>
     );
   }
@@ -58,13 +65,17 @@ export default function QueueBoard({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "WAITING":
+      case "Waiting":
         return "bg-yellow-100 text-yellow-700";
-      case "IN_CONSULTATION":
+      case "In_Consultation":
         return "bg-green-100 text-green-700";
       default:
         return "bg-slate-100 text-slate-600";
     }
+  };
+
+  const formatStatus = (status: string) => {
+    return status.replace(/_/g, " ");
   };
 
   return (
@@ -77,19 +88,23 @@ export default function QueueBoard({
           <div className="flex items-center gap-4">
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                item.status === "IN_CONSULTATION"
+                item.status === "In_Consultation"
                   ? "bg-green-600 text-white animate-pulse"
                   : "bg-slate-100 text-slate-600"
               }`}
             >
-              {item.patient_name.charAt(0)}
+              {item.patient_name?.charAt(0) || "?"}
             </div>
 
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="font-bold text-slate-900">
                   {item.patient_name}
-                  {item.patient_id && <span className="text-gray-500 text-sm ml-2 font-normal text-xs uppercase bg-slate-100 px-2 py-0.5 rounded-md">ID: {item.patient_id}</span>}
+                  {item.patient_id && (
+                    <span className="text-gray-500 text-sm ml-2 font-normal text-xs uppercase bg-slate-100 px-2 py-0.5 rounded-md">
+                      ID: {item.patient_id.substring(0, 8)}
+                    </span>
+                  )}
                 </h4>
                 <span
                   className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${getPriorityColor(item.priority)}`}
@@ -97,37 +112,50 @@ export default function QueueBoard({
                   {item.priority}
                 </span>
                 {item.priority === "EMERGENCY" && (
-                   <div className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse ml-1" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse ml-1" />
                 )}
               </div>
               <div className="flex items-center gap-3 mt-1.5">
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium bg-slate-50 px-2 py-1 rounded border border-slate-100">
                   <Clock size={12} className="text-blue-500" />
                   <span>
-                    Checked in: {new Date(item.check_in_time).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    Checked in:{" "}
+                    {item.check_in_time
+                      ? new Date(item.check_in_time).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "N/A"}
                   </span>
                 </div>
                 <div
                   className={`text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider border ${getStatusBadge(item.status)}`}
                 >
-                  {item.status.replace("_", " ")}
+                  {formatStatus(item.status)}
                 </div>
-                {item.status === "WAITING" && (
+                {item.status === "Waiting" && item.check_in_time && (
                   <div className="text-xs text-slate-500 font-medium">
-                    Wait time: {Math.floor((Date.now() - new Date(item.check_in_time).getTime()) / 60000)}m
+                    Wait time:{" "}
+                    {Math.floor(
+                      (Date.now() - new Date(item.check_in_time).getTime()) /
+                        60000,
+                    )}
+                    m
                   </div>
                 )}
               </div>
+              {item.notes && (
+                <p className="text-xs text-purple-600 font-medium mt-1.5 bg-purple-50 px-2 py-1 rounded border border-purple-100">
+                  {item.notes}
+                </p>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {role === "DOCTOR" && item.status === "WAITING" && (
+            {role === "DOCTOR" && item.status === "Waiting" && (
               <button
-                onClick={() => onStatusChange?.(item.id, "IN_CONSULTATION")}
+                onClick={() => onStatusChange?.(item.id, "In_Consultation")}
                 className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-all"
               >
                 <Stethoscope size={14} />
@@ -135,9 +163,9 @@ export default function QueueBoard({
               </button>
             )}
 
-            {item.status === "IN_CONSULTATION" ? (
+            {item.status === "In_Consultation" ? (
               <Link
-                href={`/dashboard/clinical/active`}
+                href={`/dashboard/patients/${item.patient_id}`}
                 className="flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-all"
               >
                 Go to Visit
