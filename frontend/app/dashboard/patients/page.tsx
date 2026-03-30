@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Users, Filter } from "lucide-react";
+import { Plus, Users, Filter, Stethoscope } from "lucide-react";
 import PatientTable from "@/components/patients/PatientTable";
 import PatientSearch from "@/components/patients/PatientSearch";
 import { Patient } from "@/lib/types/patient";
 import Link from "next/link";
 import { fetchPatients } from "@/lib/store";
+import { useAuth } from "@/app/providers";
 
 export default function PatientsDashboardPage() {
+  const { user } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,21 +77,29 @@ export default function PatientsDashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Users className="text-blue-600" />
-            Patient Records
+            {user?.role === "DOCTOR" ? (
+              <Stethoscope className="text-indigo-600" />
+            ) : (
+              <Users className="text-blue-600" />
+            )}
+            {user?.role === "DOCTOR" ? "My Patients" : "Patient Records"}
           </h1>
           <p className="text-slate-700 text-sm mt-1 font-medium">
-            Manage and search patient database ({patients.length} total)
+            {user?.role === "DOCTOR"
+              ? `Manage your assigned clinical cases (${patients.length} total)`
+              : `Manage and search overall patient database (${patients.length} total)`}
           </p>
         </div>
 
-        <Link
-          href="/dashboard/patients/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-md shadow-blue-100"
-        >
-          <Plus size={18} />
-          <span>New Patient</span>
-        </Link>
+        {(user?.role === "RECEPTIONIST" || user?.role === "ADMIN") && (
+          <Link
+            href="/dashboard/patients/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all shadow-md shadow-blue-100"
+          >
+            <Plus size={18} />
+            <span>New Patient Intake</span>
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">

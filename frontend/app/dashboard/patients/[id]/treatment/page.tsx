@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import StepNavigation from "@/components/clinical/StepNavigation";
 import { useAuth } from "@/app/providers";
 import {
   Plus,
@@ -41,6 +44,8 @@ interface TreatmentPlan {
 
 export default function TreatmentPage() {
   const { isAuthenticated } = useAuth();
+  const params = useParams();
+  const patientId = params?.id as string;
   const [plans, setPlans] = useState<TreatmentPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -130,6 +135,13 @@ export default function TreatmentPage() {
   };
 
   const filteredPlans = plans.filter((p) => {
+    // Patient Filter
+    const patientMatch =
+      !patientId ||
+      p.patient_id === patientId ||
+      patientId === "P001"; /* mock filter */
+    if (!patientMatch) return false;
+
     if (filter === "active")
       return ["Planned", "In Progress"].includes(p.status);
     if (filter === "completed") return p.status === "Completed";
@@ -234,6 +246,13 @@ export default function TreatmentPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
+              {" "}
+              <Link
+                href={`/dashboard/patients/${patientId}`}
+                className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center mb-4"
+              >
+                <Activity size={20} className="mr-1" /> Back to Patient Profile
+              </Link>{" "}
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
                 <ClipboardList className="text-indigo-600" /> Treatment
                 Management
@@ -505,6 +524,9 @@ export default function TreatmentPage() {
             </div>
           </div>
         )}
+        <div className="max-w-7xl mx-auto px-6">
+          <StepNavigation patientId={patientId} currentStep="treatment" />
+        </div>
       </div>
 
       {/* Smart New Plan Modal */}

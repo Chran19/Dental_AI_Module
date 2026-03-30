@@ -83,22 +83,22 @@ const menuItems: MenuItem[] = [
     submenu: [
       {
         title: "Clinical Input",
-        href: "/dashboard/clinical",
+        href: "/dashboard/patients/[id]/clinical",
         icon: Stethoscope,
       },
       {
         title: "Diagnosis",
-        href: "/dashboard/diagnosis",
+        href: "/dashboard/patients/[id]/diagnosis",
         icon: BookOpen,
       },
       {
         title: "Treatment",
-        href: "/dashboard/treatment",
+        href: "/dashboard/patients/[id]/treatment",
         icon: Pill,
       },
       {
         title: "Results",
-        href: "/dashboard/results",
+        href: "/dashboard/patients/[id]/results",
         icon: FileText,
       },
     ],
@@ -147,9 +147,9 @@ export default function Sidebar() {
   };
 
   const toggleSubmenu = (title: string) => {
-    setOpenMenus(prev => ({
+    setOpenMenus((prev) => ({
       ...prev,
-      [title]: !prev[title]
+      [title]: !prev[title],
     }));
   };
 
@@ -191,12 +191,16 @@ export default function Sidebar() {
         {filteredItems.map((item) => {
           const hasSubmenu = item.submenu && item.submenu.length > 0;
           const isOpen = openMenus[item.title];
-          
+
           let isActive = false;
           if (item.href) {
-            isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
           } else if (hasSubmenu) {
-            isActive = item.submenu!.some(sub => pathname === sub.href || pathname.startsWith(`${sub.href}/`));
+            isActive = item.submenu!.some(
+              (sub) =>
+                pathname === sub.href || pathname.startsWith(`${sub.href}/`),
+            );
           }
 
           return (
@@ -221,7 +225,7 @@ export default function Sidebar() {
                   onClick={() => toggleSubmenu(item.title)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
                     isActive && !isOpen
-                      ? "bg-slate-800 text-white" 
+                      ? "bg-slate-800 text-white"
                       : "text-slate-300 hover:bg-slate-700 hover:text-white"
                   } ${isCollapsed ? "justify-center" : ""}`}
                   title={isCollapsed ? item.title : ""}
@@ -234,7 +238,11 @@ export default function Sidebar() {
                   </div>
                   {!isCollapsed && (
                     <div className="text-slate-400">
-                      {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      {isOpen ? (
+                        <ChevronDown size={16} />
+                      ) : (
+                        <ChevronRight size={16} />
+                      )}
                     </div>
                   )}
                 </button>
@@ -244,7 +252,9 @@ export default function Sidebar() {
               {hasSubmenu && !isCollapsed && isOpen && (
                 <div className="pl-9 pr-2 mt-1 space-y-1">
                   {item.submenu!.map((subItem) => {
-                    const isSubActive = pathname === subItem.href || pathname.startsWith(`${subItem.href}/`);
+                    const isSubActive =
+                      pathname === subItem.href ||
+                      pathname.startsWith(`${subItem.href}/`);
                     return (
                       <Link
                         key={subItem.title}

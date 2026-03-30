@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import StepNavigation from "@/components/clinical/StepNavigation";
 import { useAuth } from "@/app/providers";
 import {
   FileText,
@@ -36,6 +39,8 @@ interface Diagnosis {
 
 export default function DiagnosisPage() {
   const { isAuthenticated } = useAuth();
+  const params = useParams();
+  const patientId = params?.id as string;
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -210,6 +215,9 @@ export default function DiagnosisPage() {
   };
 
   const filteredDiagnoses = diagnoses.filter((d) => {
+    // Patient filter
+    const patientMatch = !patientId || d.patient_id === patientId || patientId === "P001" /* mock matching */;
+
     // Search filter
     const searchLower = searchQuery.toLowerCase();
     const searchMatch =
@@ -219,14 +227,13 @@ export default function DiagnosisPage() {
       d.condition.toLowerCase().includes(searchLower);
 
     // Status filter
-    const statusMatch = statusFilter === "all" || d.status === statusFilter;
+    const statusMatch = statusFilter === "all" || d.status === statusFilter;    
 
     // Severity filter
     const severityMatch =
       severityFilter === "all" || d.severity === severityFilter;
 
-    return searchMatch && statusMatch && severityMatch;
-  });
+    return patientMatch && searchMatch && statusMatch && severityMatch;
 
   const getSeverityStyle = (severity: string) => {
     switch (severity) {
@@ -272,8 +279,12 @@ export default function DiagnosisPage() {
       {/* Header & Stats Dashboard */}
       <div className="bg-white border-b border-gray-200 px-6 py-8 shadow-sm">
         <div className="max-w-6xl mx-auto space-y-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <div>            <Link
+              href={`/dashboard/patients/${patientId}`}
+              className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center mb-4"
+            >
+              <Activity size={20} className="mr-1" /> Back to Patient Profile
+            </Link>            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <ClipboardList className="text-indigo-600 font-bold" size={32} />
               Diagnoses & Conditions
             </h1>
@@ -610,6 +621,7 @@ export default function DiagnosisPage() {
               );
             })
           )}
+          <StepNavigation patientId={patientId} currentStep="diagnosis" />
         </div>
       </div>
 

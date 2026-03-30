@@ -245,18 +245,12 @@ export default function DoctorDashboard() {
 
           {/* Quick Link Buttons Layout */}
           <div className="grid grid-cols-2 gap-3">
-            <Link
-              href="/dashboard/clinical"
-              className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl hover:border-indigo-400 hover:shadow-md transition group text-indigo-700"
-            >
-              <FileText
-                size={28}
-                className="text-indigo-500 group-hover:scale-110 transition-transform"
-              />
-              <span className="text-sm font-bold text-gray-800">
-                New Clinical Note
+            <div className="flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-400">
+              <FileText size={28} className="text-gray-400" />
+              <span className="text-sm font-bold text-gray-500 text-center">
+                Select patient from queue to begin
               </span>
-            </Link>
+            </div>
             <Link
               href="/dashboard/upload"
               className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-400 hover:shadow-md transition group text-blue-700"
@@ -269,28 +263,14 @@ export default function DoctorDashboard() {
                 Analyze Scan
               </span>
             </Link>
-            <Link
-              href="/dashboard/diagnosis"
-              className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl hover:border-purple-400 hover:shadow-md transition group text-purple-700"
-            >
-              <ClipboardList
-                size={28}
-                className="text-purple-500 group-hover:scale-110 transition-transform"
-              />
-              <span className="text-sm font-bold text-gray-800">Diagnoses</span>
-            </Link>
-            <Link
-              href="/dashboard/treatment"
-              className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl hover:border-green-400 hover:shadow-md transition group text-green-700"
-            >
-              <CheckCircle
-                size={28}
-                className="text-green-500 group-hover:scale-110 transition-transform"
-              />
-              <span className="text-sm font-bold text-gray-800">
-                Treatments
-              </span>
-            </Link>
+            <div className="col-span-2 flex flex-col items-center justify-center gap-2 p-4 bg-gray-50 border border-gray-200 rounded-xl text-center">
+              <ClipboardList size={24} className="text-gray-400 mx-auto" />
+              <p className="text-xs text-gray-500 font-medium mt-1">
+                Clinical Workflow moved to Patient Profile.
+                <br />
+                Please access it from the Active Queue or Patients list.
+              </p>
+            </div>
           </div>
         </div>
 

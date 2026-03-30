@@ -18,11 +18,16 @@ import {
   FileText,
   ArrowLeft,
   Loader2,
+  Stethoscope,
+  BookOpen,
+  CheckCircle,
+  Activity,
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function PatientProfilePage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const params = useParams();
   const patientId = params?.id as string;
 
@@ -73,9 +78,7 @@ export default function PatientProfilePage() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 text-red-600 mb-2">
           <AlertTriangle size={32} />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900">
-          Patient Not Found
-        </h2>
+        <h2 className="text-2xl font-bold text-slate-900">Patient Not Found</h2>
         <p className="text-slate-500">
           {error ||
             "The patient record you're looking for doesn't exist or has been removed."}
@@ -92,14 +95,11 @@ export default function PatientProfilePage() {
 
   // Helper: get display values
   const fullName = `${patient.first_name} ${patient.last_name}`;
-  const email =
-    patient.contact_email || patient.email || "Not provided";
-  const phone =
-    patient.contact_phone || patient.phone || "Not provided";
+  const email = patient.contact_email || patient.email || "Not provided";
+  const phone = patient.contact_phone || patient.phone || "Not provided";
   const dob = patient.dob || patient.date_of_birth || null;
   const gender = patient.gender || "Not specified";
-  const allergies: string[] =
-    patient.medical_history?.allergies || [];
+  const allergies: string[] = patient.medical_history?.allergies || [];
   const reasonOfVisit =
     patient.reason_of_visit || patient.medical_history?.reason_of_visit || null;
 
@@ -140,8 +140,7 @@ export default function PatientProfilePage() {
             </p>
             {patient.created_at && (
               <p className="text-gray-400 text-xs mt-0.5">
-                Registered:{" "}
-                {new Date(patient.created_at).toLocaleDateString()}
+                Registered: {new Date(patient.created_at).toLocaleDateString()}
               </p>
             )}
           </div>
@@ -382,6 +381,69 @@ export default function PatientProfilePage() {
               </button>
             </div>
           </div>
+
+          {/* Doctor Tools - Upgraded UI Module */}
+          {user?.role === "DOCTOR" && (
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg border border-indigo-100 p-6">
+              <h3 className="font-bold text-indigo-900 mb-4 flex items-center gap-2">
+                <Stethoscope size={20} className="text-indigo-600" />
+                Clinical Workflow
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                <Link
+                  href={`/dashboard/patients/${patientId}/clinical`}
+                  className="flex items-center justify-between px-4 py-3 bg-white hover:bg-indigo-50 border border-indigo-100 rounded-lg transition-colors shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText size={18} className="text-indigo-600" />
+                    <span className="font-medium text-slate-800">
+                      Assessment
+                    </span>
+                  </div>
+                  <ChevronRight size={16} className="text-indigo-400" />
+                </Link>
+
+                <Link
+                  href={`/dashboard/patients/${patientId}/diagnosis`}
+                  className="flex items-center justify-between px-4 py-3 bg-white hover:bg-indigo-50 border border-indigo-100 rounded-lg transition-colors shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <BookOpen size={18} className="text-indigo-600" />
+                    <span className="font-medium text-slate-800">
+                      Diagnosis
+                    </span>
+                  </div>
+                  <ChevronRight size={16} className="text-indigo-400" />
+                </Link>
+
+                <Link
+                  href={`/dashboard/patients/${patientId}/treatment`}
+                  className="flex items-center justify-between px-4 py-3 bg-white hover:bg-indigo-50 border border-indigo-100 rounded-lg transition-colors shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <Pill size={18} className="text-indigo-600" />
+                    <span className="font-medium text-slate-800">
+                      Treatment Plan
+                    </span>
+                  </div>
+                  <ChevronRight size={16} className="text-indigo-400" />
+                </Link>
+
+                <Link
+                  href={`/dashboard/patients/${patientId}/results`}
+                  className="flex items-center justify-between px-4 py-3 bg-white hover:bg-indigo-50 border border-indigo-100 rounded-lg transition-colors shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <CheckCircle size={18} className="text-indigo-600" />
+                    <span className="font-medium text-slate-800">
+                      Results & Closure
+                    </span>
+                  </div>
+                  <ChevronRight size={16} className="text-indigo-400" />
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import { submitClinicalInput } from "@/lib/api";
 import { useAuth } from "@/app/providers";
+import StepNavigation from "@/components/clinical/StepNavigation";
 import {
   User,
   HeartPulse,
@@ -72,13 +74,23 @@ const defaultFormData = {
 };
 
 export default function ClinicalPage() {
+  const params = useParams();
+  const patientId = (params?.id as string) || defaultFormData.patient_id;
+  const router = useRouter();
   const { isAuthenticated } = useAuth();
+
+  const [formData, setFormData] = useState({
+    ...defaultFormData,
+    patient_id: patientId,
+  });
+
+  useEffect(() => {
+    if (patientId && formData.patient_id !== patientId) {
+      setFormData((prev) => ({ ...prev, patient_id: patientId }));
+    }
+  }, [patientId]);
+
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [response, setResponse] = useState<any>(null);
-  const [formData, setFormData] = useState(defaultFormData);
 
   const steps = [
     { id: 1, title: "Demographics", icon: User },
@@ -91,7 +103,12 @@ export default function ClinicalPage() {
   const handleNext = () => {
     setError("");
     if (currentStep === 1) {
-      if (!formData.patient_id || !formData.age || !formData.gender || !formData.chief_complaint) {
+      if (
+        !formData.patient_id ||
+        !formData.age ||
+        !formData.gender ||
+        !formData.chief_complaint
+      ) {
         setError("Please fill out all demographic fields.");
         return;
       }
@@ -165,7 +182,7 @@ export default function ClinicalPage() {
   };
 
   const resetForm = () => {
-    setFormData(defaultFormData);
+    setFormData({ ...defaultFormData, patient_id: patientId });
     setCurrentStep(1);
     setSuccess("");
     setResponse(null);
@@ -185,10 +202,10 @@ export default function ClinicalPage() {
     <div className="min-h-screen bg-gray-50 px-4 py-8">
       <div className="mx-auto max-w-4xl">
         <Link
-          href="/dashboard"
+          href={`/dashboard/patients/${patientId}`}
           className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center"
         >
-          <ChevronLeft size={20} className="mr-1" /> Back to Dashboard
+          <ChevronLeft size={20} className="mr-1" /> Back to Patient Profile
         </Link>
 
         <div className="mt-6">
@@ -280,9 +297,13 @@ export default function ClinicalPage() {
                         className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                       />
                       <datalist id="patients">
-                         <option value="550e8400-e29b-41d4-a716-446655440000">Charlie Brown (Current)</option>
-                         <option value="NEW-PATIENT-001">John Doe (New)</option>
-                         <option value="NEW-PATIENT-002">Jane Smith (New)</option>
+                        <option value="550e8400-e29b-41d4-a716-446655440000">
+                          Charlie Brown (Current)
+                        </option>
+                        <option value="NEW-PATIENT-001">John Doe (New)</option>
+                        <option value="NEW-PATIENT-002">
+                          Jane Smith (New)
+                        </option>
                       </datalist>
                     </div>
                     <div className="space-y-2">
@@ -721,7 +742,10 @@ export default function ClinicalPage() {
 
                   {error && (
                     <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-700 border border-red-200 flex items-start">
-                      <AlertTriangle className="mr-3 flex-shrink-0 mt-0.5" size={20} />
+                      <AlertTriangle
+                        className="mr-3 flex-shrink-0 mt-0.5"
+                        size={20}
+                      />
                       <div>
                         <strong>Error:</strong> {error}
                       </div>
@@ -913,6 +937,10 @@ export default function ClinicalPage() {
                   </button>
                 )}
               </div>
+            )}
+
+            {success && (
+              <StepNavigation patientId={patientId} currentStep="clinical" />
             )}
           </form>
         </div>
