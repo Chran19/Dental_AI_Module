@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import StepNavigation from "@/components/clinical/StepNavigation";
 import { getAnalysisResults } from "@/lib/api";
 import { useAuth } from "@/app/providers";
+import { useQueueStatus } from "@/lib/hooks/useQueueStatus";
 import {
   ArrowLeft,
   FileText,
@@ -23,12 +24,16 @@ import {
 export default function ResultsPage() {
   const { isAuthenticated } = useAuth();
   const params = useParams();
+  const router = useRouter();
   const patientId = params?.id as string;
+  const { markAsComplete } = useQueueStatus(patientId);
 
   const [results, setResults] = useState<any[]>([]);
   const [filteredResults, setFilteredResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [completingWorkflow, setCompletingWorkflow] = useState(false);
+  const [workflowCompleted, setWorkflowCompleted] = useState(false);
 
   // Filters
   const [filterType, setFilterType] = useState("All");
@@ -102,6 +107,23 @@ export default function ResultsPage() {
 
     setFilteredResults(filtered);
   }, [filterType, minConfidence, results, patientId]);
+
+  const handleCompleteWorkflow = async () => {
+    setCompletingWorkflow(true);
+    try {
+      const success = await markAsComplete();
+      if (success) {
+        setWorkflowCompleted(true);
+        setTimeout(() => {
+          router.push("/dashboard/patients");
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Failed to complete workflow:", err);
+    } finally {
+      setCompletingWorkflow(false);
+    }
+  };
 
   if (!isAuthenticated) return null;
 
@@ -298,8 +320,28 @@ export default function ResultsPage() {
             )}
           </div>
 
-          <div className="mt-8 px-6 pb-6">
-            <StepNavigation patientId={patientId} currentStep="results" />
+          <div className="mt-8 px-6 pb-6 space-y-4">
+            {workflowCompleted ? (
+              <div className="p-6 bg-green-50 border-2 border-green-300 rounded-xl text-center">
+                <h3 className="text-lg font-bold text-green-700 mb-2">
+                  ✓ Workflow Complete!
+                </h3>
+                <p className="text-green-600 text-sm">
+                  Patient has been removed from the queue.
+                </p>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleCompleteWorkflow}
+                  disabled={completingWorkflow}
+                  className="w-full px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {completingWorkflow ? "Completing..." : "✓ Complete Workflow"}
+                </button>
+                <StepNavigation patientId={patientId} currentStep="results" />
+              </>
+            )}
           </div>
         </div>
       </div>

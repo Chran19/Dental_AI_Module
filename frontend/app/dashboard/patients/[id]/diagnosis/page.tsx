@@ -216,7 +216,10 @@ export default function DiagnosisPage() {
 
   const filteredDiagnoses = diagnoses.filter((d) => {
     // Patient filter
-    const patientMatch = !patientId || d.patient_id === patientId || patientId === "P001" /* mock matching */;
+    const patientMatch =
+      !patientId ||
+      d.patient_id === patientId ||
+      patientId === "P001"; /* mock matching */
 
     // Search filter
     const searchLower = searchQuery.toLowerCase();
@@ -227,13 +230,14 @@ export default function DiagnosisPage() {
       d.condition.toLowerCase().includes(searchLower);
 
     // Status filter
-    const statusMatch = statusFilter === "all" || d.status === statusFilter;    
+    const statusMatch = statusFilter === "all" || d.status === statusFilter;
 
     // Severity filter
     const severityMatch =
       severityFilter === "all" || d.severity === severityFilter;
 
     return patientMatch && searchMatch && statusMatch && severityMatch;
+  });
 
   const getSeverityStyle = (severity: string) => {
     switch (severity) {
@@ -279,12 +283,14 @@ export default function DiagnosisPage() {
       {/* Header & Stats Dashboard */}
       <div className="bg-white border-b border-gray-200 px-6 py-8 shadow-sm">
         <div className="max-w-6xl mx-auto space-y-8">
-          <div>            <Link
+          <div>
+            <Link
               href={`/dashboard/patients/${patientId}`}
               className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center mb-4"
             >
               <Activity size={20} className="mr-1" /> Back to Patient Profile
-            </Link>            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
               <ClipboardList className="text-indigo-600 font-bold" size={32} />
               Diagnoses & Conditions
             </h1>

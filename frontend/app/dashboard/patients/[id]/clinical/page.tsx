@@ -91,6 +91,10 @@ export default function ClinicalPage() {
   }, [patientId]);
 
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [response, setResponse] = useState<any>(null);
 
   const steps = [
     { id: 1, title: "Demographics", icon: User },

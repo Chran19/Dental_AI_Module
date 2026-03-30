@@ -252,7 +252,7 @@ export default function TreatmentPage() {
                 className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center mb-4"
               >
                 <Activity size={20} className="mr-1" /> Back to Patient Profile
-              </Link>{" "}
+              </Link>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
                 <ClipboardList className="text-indigo-600" /> Treatment
                 Management

@@ -441,7 +441,7 @@ export default function DoctorDashboard() {
                 Cases
               </h2>
               <Link
-                href="/dashboard/diagnosis"
+                href="/dashboard/patients"
                 className="text-sm font-bold text-indigo-600 flex items-center hover:underline"
               >
                 View All <ChevronRight size={16} />

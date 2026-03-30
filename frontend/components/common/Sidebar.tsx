@@ -83,22 +83,22 @@ const menuItems: MenuItem[] = [
     submenu: [
       {
         title: "Clinical Input",
-        href: "/dashboard/patients/[id]/clinical",
+        href: "/dashboard/patients",
         icon: Stethoscope,
       },
       {
         title: "Diagnosis",
-        href: "/dashboard/patients/[id]/diagnosis",
+        href: "/dashboard/patients",
         icon: BookOpen,
       },
       {
         title: "Treatment",
-        href: "/dashboard/patients/[id]/treatment",
+        href: "/dashboard/patients",
         icon: Pill,
       },
       {
         title: "Results",
-        href: "/dashboard/patients/[id]/results",
+        href: "/dashboard/patients",
         icon: FileText,
       },
     ],

@@ -9,10 +9,12 @@ from typing import List, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.database import get_db
 from app.dependencies import get_current_user, CurrentUser
 from app.services.patient_service import PatientCreate, PatientResponse, PatientService, PatientUpdate
+from app.models.db_models import User
 
 router = APIRouter(prefix="/patients", tags=["Patient Management (EHR)"])
 
@@ -48,8 +50,21 @@ async def create_patient(
                 detail="Unauthorized to create patients",
             )
         
-        # Use current user's ID if they're a doctor, else use a default/assigned doctor
-        doctor_id = current_user.user_id if current_user.role == "DOCTOR" else uuid.uuid4()
+        # Use current user's ID if they're a doctor, else use the first available doctor
+        if current_user.role == "DOCTOR":
+            doctor_id = current_user.user_id
+        else:
+            # For receptionist/admin, assign to the first available doctor
+            first_doctor_result = await service.db.execute(
+                select(User).where(User.role == "DOCTOR").limit(1)
+            )
+            first_doctor = first_doctor_result.scalars().first()
+            if not first_doctor:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="No doctors available to assign patient",
+                )
+            doctor_id = first_doctor.id
         return await service.create_patient(payload, doctor_id)
     except Exception as e:
         raise HTTPException(

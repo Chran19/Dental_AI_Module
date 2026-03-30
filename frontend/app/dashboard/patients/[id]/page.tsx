@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers";
 import { useParams } from "next/navigation";
+import { useQueueStatus } from "@/lib/hooks/useQueueStatus";
 import { Patient } from "@/lib/types/patient";
 import { fetchPatientById } from "@/lib/store";
 import {
@@ -30,6 +31,9 @@ export default function PatientProfilePage() {
   const { isAuthenticated, user } = useAuth();
   const params = useParams();
   const patientId = params?.id as string;
+
+  // Auto-mark as In_Consultation when doctor accesses patient
+  useQueueStatus(patientId);
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -397,7 +401,7 @@ export default function PatientProfilePage() {
                   <div className="flex items-center gap-3">
                     <FileText size={18} className="text-indigo-600" />
                     <span className="font-medium text-slate-800">
-                      Assessment
+                      Clinical Input
                     </span>
                   </div>
                   <ChevronRight size={16} className="text-indigo-400" />

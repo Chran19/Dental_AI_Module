@@ -31,13 +31,18 @@ def get_analyzer():
     global image_analyzer
     if image_analyzer is None:
         try:
-            model_path = Path(__file__).parent.parent.parent / 'ml' / 'models' / 'dental_cnn_model_phase4.pth'
+            ml_models_dir = Path(__file__).parent.parent.parent / 'ml' / 'models'
+            # Try improved model first, then fall back to phase4 model
+            model_path = ml_models_dir / 'dental_cnn_model_improved.pth'
+            if not model_path.exists():
+                model_path = ml_models_dir / 'dental_cnn_model_phase4.pth'
+            
             device = 'cuda' if __import__('torch').cuda.is_available() else 'cpu'
             image_analyzer = create_image_analyzer_service(
-                model_path=str(model_path),
+                model_path=str(model_path) if model_path.exists() else None,
                 device=device
             )
-            logger.info(f"✅ Image analyzer initialized on {device}")
+            logger.info(f"Image analyzer initialized on {device} (model: {model_path.name if model_path.exists() else 'ImageNet pretrained'})")
         except Exception as e:
             logger.error(f"Failed to initialize analyzer: {e}")
             raise
@@ -279,8 +284,8 @@ async def get_status():
             'model': 'ResNet50 CNN',
             'device': analyzer.device,
             'pathologies_supported': [
-                'Normal', 'Caries', 'Periapical_Lesion', 'Bone_Loss',
-                'Abscess', 'Fracture', 'Restoration', 'Implant'
+                'Normal', 'Caries', 'Impacted_Teeth', 'Bone_Loss',
+                'Infection', 'Fracture'
             ],
             'regions_supported': [
                 'Anterior_Upper', 'Anterior_Lower', 'Premolar_Upper',

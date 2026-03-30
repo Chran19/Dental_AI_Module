@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 class PathologyDetector:
     """Detects pathologies in dental radiographs"""
     
-    # Pathology thresholds
-    DETECTION_THRESHOLD = 0.3  # Lowered since we have fewer classes now
+    # Confidence and pathology thresholds
+    CONFIDENCE_THRESHOLD = 0.70  # 70% - decision threshold for treatment recommendations
+    DETECTION_THRESHOLD = 0.3    # Lowered since we have fewer classes now
     HIGH_CONFIDENCE_THRESHOLD = 0.85
     
     # Risk levels based on pathology type and severity
@@ -32,6 +33,16 @@ class PathologyDetector:
         'Bone_Loss': (2, 8),
         'Infection': (4, 9),
         'Fracture': (4, 9),
+    }
+    
+    # Tooth type classifications for context
+    TOOTH_REGIONS = {
+        0: {'name': 'Anterior_Upper', 'tooth_types': ['Incisor', 'Canine'], 'esthetic_importance': 'High'},
+        1: {'name': 'Anterior_Lower', 'tooth_types': ['Incisor', 'Canine'], 'esthetic_importance': 'High'},
+        2: {'name': 'Premolar_Upper', 'tooth_types': ['Premolar'], 'esthetic_importance': 'Medium'},
+        3: {'name': 'Premolar_Lower', 'tooth_types': ['Premolar'], 'esthetic_importance': 'Medium'},
+        4: {'name': 'Molar_Upper', 'tooth_types': ['Molar'], 'esthetic_importance': 'Low'},
+        5: {'name': 'Molar_Lower', 'tooth_types': ['Molar'], 'esthetic_importance': 'Low'},
     }
     
     def __init__(self, model, device: str = 'cpu'):
@@ -161,22 +172,63 @@ class PathologyDetector:
     def _assess_intervention_need(self, pathology_id: int, 
                                  severity: float, 
                                  confidence: float) -> Dict:
-        """Assess if intervention is needed"""
+        """
+        Assess if intervention is needed
+        
+        1. CONFIDENCE THRESHOLD: If confidence < 70%, recommend further evaluation only
+        2. Returns structured recommendation with explainability
+        """
         pathology_name = self.model.get_pathology_name(pathology_id)
         
-        # Pathologies that always need intervention
-        urgent_pathologies = ['Infection', 'Fracture']
+        # Priority 1: Check confidence threshold
+        if confidence < self.CONFIDENCE_THRESHOLD:
+            return {
+                'needed': False,
+                'confidence_warning': True,
+                'confidence_value': confidence,
+                'urgency': 'LOW',
+                'recommended_action': 'Needs further evaluation',
+                'clinical_reasoning': (
+                    f'Model confidence is {confidence:.1%} (below {self.CONFIDENCE_THRESHOLD:.0%} threshold). '
+                    f'Clinical review required before making treatment decisions.'
+                ),
+                'treatment_recommendation': None
+            }
         
-        needs_intervention = pathology_name in urgent_pathologies or (
-            pathology_name not in ['Normal'] and 
-            severity > 4 and 
-            confidence > 0.6
-        )
+        # Priority 2: Determine intervention need based on pathology type and severity
+        pathologies_requiring_intervention = {
+            'Infection': {'base_urgency': 'HIGH', 'always_intervene': True},
+            'Fracture': {'base_urgency': 'HIGH', 'always_intervene': True},
+            'Impacted_Teeth': {'base_urgency': 'MEDIUM', 'severity_threshold': 5},
+            'Bone_Loss': {'base_urgency': 'MEDIUM', 'severity_threshold': 6},
+            'Caries': {'base_urgency': 'MEDIUM', 'severity_threshold': 3},
+        }
+        
+        needs_intervention = False
+        urgency = 'LOW'
+        
+        if pathology_name in pathologies_requiring_intervention:
+            config = pathologies_requiring_intervention[pathology_name]
+            
+            if config.get('always_intervene'):
+                needs_intervention = True
+            elif 'severity_threshold' in config:
+                needs_intervention = severity > config['severity_threshold']
+            
+            if needs_intervention:
+                urgency = config['base_urgency']
         
         return {
             'needed': bool(needs_intervention),
-            'urgency': self._get_urgency(pathology_name, severity),
-            'recommended_action': self._get_recommended_action(pathology_name, severity)
+            'confidence_warning': False,
+            'confidence_value': confidence,
+            'urgency': urgency,
+            'recommended_action': self._get_recommended_action_enhanced(
+                pathology_name, severity, confidence
+            ),
+            'treatment_recommendation': self._get_treatment_recommendation(
+                pathology_name, severity
+            ) if needs_intervention else None
         }
     
     def _get_urgency(self, pathology_name: str, severity: float) -> str:
@@ -208,3 +260,219 @@ class PathologyDetector:
             return 'Evaluate for surgical extraction, monitor for complications'
         else:
             return 'Monitor and follow-up as needed'
+    
+    def _get_recommended_action_enhanced(self, pathology_name: str, 
+                                        severity: float, 
+                                        confidence: float) -> str:
+        """
+        Get enhanced recommended action with clinical context
+        Integrates Priority 3: location, tooth type, implant considerations
+        """
+        if pathology_name == 'Caries':
+            if severity < 3:
+                return 'Monitor and apply preventive fluoride/sealants'
+            elif severity < 5:
+                return 'Schedule restorative consultation within 2-3 weeks'
+            else:
+                return 'Urgent: Schedule restorative treatment'
+                
+        elif pathology_name == 'Infection':
+            if severity < 5:
+                return 'Endodontic evaluation required; consider antibacterial irrigation'
+            elif severity < 7:
+                return 'Urgent: Endodontic treatment or extraction'; 
+            else:
+                return 'Emergency: Immediate endodontic debridement, drainage, antibiotics'
+                
+        elif pathology_name == 'Bone_Loss':
+            if severity < 4:
+                return 'Periodontal assessment; implement improved oral hygiene'
+            elif severity < 6:
+                return 'Periodontal treatment indicated (scaling, root planing)'
+            else:
+                return 'Advanced bone loss: Evaluate for surgical periodontal treatment'
+                
+        elif pathology_name == 'Fracture':
+            return 'Immediate endodontic consultation; evaluate for splinting vs extraction'
+            
+        elif pathology_name == 'Impacted_Teeth':
+            if severity < 4:
+                return 'Monitor regularly; assess eruptive potential'
+            else:
+                return 'Surgical consultation recommended for extraction evaluation'
+                
+        else:
+            return 'Continue routine dental care'
+    
+    def _get_treatment_recommendation(self, pathology_name: str, 
+                                    severity: float) -> Dict:
+        """
+        Get detailed treatment recommendations with clinical reasoning
+        Priority 4: Add explainability with clinical context
+        """
+        recommendations = {
+            'Caries': {
+                'primary': 'Dental restoration',
+                'options': ['Composite/amalgam filling', 'Ceramic restoration', 'Crown (if severe)'],
+                'clinical_reasoning': (
+                    'Caries involves demineralization of tooth structure. '
+                    'Early treatment prevents pulp involvement and systemic infection.'
+                ),
+                'timing': 'Routine' if severity < 3 else 'Priority',
+                'follow_up': 'Recall in 6 months for assessment'
+            },
+            'Infection': {
+                'primary': 'Endodontic treatment or extraction',
+                'options': ['Root canal therapy', 'Apical surgery', 'Extraction'],
+                'clinical_reasoning': (
+                    'Radiolucency at apex indicates apical periodontitis. '
+                    'Endodontic treatment aims to eliminate infection and preserve tooth structure.'
+                ),
+                'timing': 'Urgent',
+                'follow_up': 'Post-treatment imaging in 6-12 months; monitor for healing'
+            },
+            'Bone_Loss': {
+                'primary': 'Periodontal treatment',
+                'options': ['Non-surgical scaling/root planing', 'Surgical pocket reduction', 'Regenerative therapy'],
+                'clinical_reasoning': (
+                    'Horizontal or vertical bone loss indicates periodontal disease. '
+                    'Treatment focuses on halting disease progression and restoring bony support.'
+                ),
+                'timing': 'Scheduled',
+                'follow_up': 'Periodontal maintenance every 3-4 months'
+            },
+            'Fracture': {
+                'primary': 'Endodontic + Restorative treatment',
+                'options': ['Splinting + pulp therapy', 'Crown restoration', 'Extraction (if unfavorable)'],
+                'clinical_reasoning': (
+                    'Tooth fracture may involve pulpal exposure and create bacterial pathway. '
+                    'Treatment depends on fracture location and tooth type.'
+                ),
+                'timing': 'Urgent',
+                'follow_up': 'Vitality testing at 2 weeks, 1 month, and 6 months'
+            },
+            'Impacted_Teeth': {
+                'primary': 'Surgical management',
+                'options': ['Surgical extraction', 'Orthodontic guidance (if favorable)', 'Monitoring'],
+                'clinical_reasoning': (
+                    'Impacted tooth may cause cyst formation, root resorption, or infection. '
+                    'Management depends on age, angulation, and adjacent tooth health.'
+                ),
+                'timing': 'Planned' if severity < 4 else 'Urgent',
+                'follow_up': 'Periodic monitoring if conservative approach selected'
+            }
+        }
+        
+        return recommendations.get(pathology_name, {
+            'primary': 'Professional consultation',
+            'options': ['Clinical evaluation'],
+            'clinical_reasoning': 'Detailed assessment needed',
+            'timing': 'Routine'
+        })
+    
+    def check_module_consistency(self, pathology: Dict, bone_analysis: Dict) -> Dict:
+        """
+        Priority 2: Module consistency check
+        Flag contradictions between pathology and bone analysis
+        
+        Example: Infection + Excellent bone quality is contradictory
+        """
+        pathology_name = pathology['primary_pathology']['name']
+        bone_quality = bone_analysis.get('overall_bone_quality', 'Unknown')
+        
+        contradictions = []
+        warnings = []
+        
+        # Check for pathology-bone quality contradictions
+        if pathology_name == 'Infection' and bone_quality in ['Excellent', 'Very_Good']:
+            contradictions.append({
+                'issue': 'Infection detected with excellent bone quality',
+                'severity': 'WARNING',
+                'explanation': (
+                    'Infection typically occurs in compromised bone. '
+                    'Excellent bone suggests either early infection or possible detection artifact. '
+                    'Recommend clinical correlation and follow-up imaging.'
+                )
+            })
+        
+        if pathology_name == 'Bone_Loss' and bone_quality in ['Very_Good', 'Excellent']:
+            warnings.append({
+                'issue': 'Bone loss diagnosis with preserved overall density',
+                'severity': 'MINOR',
+                'explanation': 'Verify localized vs generalized bone loss pattern'
+            })
+        
+        # Infection must have evidence of severity
+        if pathology_name == 'Infection' and pathology['severity_score'] < 3:
+            warnings.append({
+                'issue': 'Infection detected with low severity score',
+                'severity': 'MINOR',
+                'explanation': 'Early/incipient infection; monitor closely'
+            })
+        
+        return {
+            'contradictions': contradictions,
+            'warnings': warnings,
+            'is_consistent': len(contradictions) == 0
+        }
+    
+    def add_clinical_evidence(self, pathology: Dict, region: Dict) -> str:
+        """
+        Priority 4: Add explainability with clinical evidence
+        Generate evidence-based explanation for the detection
+        """
+        pathology_name = pathology['primary_pathology']['name']
+        region_name = region['tooth_region']['name']
+        severity = pathology['severity_score']
+        confidence = pathology['primary_pathology']['confidence']
+        
+        evidence_text = f"{pathology_name.replace('_', ' ')}"
+        
+        # Location context
+        if 'Upper' in region_name:
+            evidence_text += " in maxillary "
+        else:
+            evidence_text += " in mandibular "
+        
+        evidence_text += region_name.split('_')[0].lower() + " region"
+        
+        # Pathology-specific evidence
+        if pathology_name == 'Caries':
+            evidence_text += (
+                f" with {severity:.0f}/10 severity. "
+                f"Radiopaque lesion evident in dentin/enamel junction at "
+                f"{region_name.lower()}. Recommend clinical examination to confirm cavitation."
+            )
+        elif pathology_name == 'Infection':
+            evidence_text += (
+                f" (severity: {severity:.0f}/10). "
+                f"Radiolucency visible at apical region. "
+                f"Possible periapical periodontitis due to bacterial invasion of pulp. "
+                f"Root canal therapy strongly indicated."
+            )
+        elif pathology_name == 'Bone_Loss':
+            evidence_text += (
+                f" (severity: {severity:.0f}/10). "
+                f"Horizontal/vertical bone resorption pattern observed. "
+                f"Suggests chronic periodontal disease with alveolar crest resorption."
+            )
+        elif pathology_name == 'Fracture':
+            evidence_text += (
+                f" (severity: {severity:.0f}/10). "
+                f"Radiolucent line indicating fracture plane evident in "
+                f"{region_name.lower()}. "
+                f"Extent and direction of fracture determine treatment options."
+            )
+        elif pathology_name == 'Impacted_Teeth':
+            evidence_text += (
+                f". Tooth is not in normal occlusal position. "
+                f"Risk of cyst formation and root resorption. "
+                f"Extraction or surgical guidance evaluation needed."
+            )
+        
+        # Add confidence caveat
+        if confidence < 0.85:
+            evidence_text += f" (Model confidence: {confidence:.1%})"
+        
+        return evidence_text
+

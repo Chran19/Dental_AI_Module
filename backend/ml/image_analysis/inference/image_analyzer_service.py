@@ -69,12 +69,11 @@ class ImageAnalyzerService:
                 checkpoint = torch.load(model_path, map_location=device, weights_only=False)
                 
                 if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
-                    self.model.load_state_dict(checkpoint['model_state_dict'])
+                    self.model.load_state_dict(checkpoint['model_state_dict'], strict=False)
                 elif isinstance(checkpoint, dict):
-                    # Try loading as raw state dict
-                    self.model.load_state_dict(checkpoint)
+                    self.model.load_state_dict(checkpoint, strict=False)
                 else:
-                    self.model.load_state_dict(checkpoint)
+                    self.model.load_state_dict(checkpoint, strict=False)
                 
                 self.model.to(device)
                 self.model.eval()
@@ -123,10 +122,20 @@ class ImageAnalyzerService:
         # 6. Analyze bone
         bone_results = self.bone_analyzer.analyze_bone_loss(processed_image)
         
-        # 7. Generate annotated image
+        # 7. IMPROVEMENT 2: Module consistency check - flag contradictions
+        consistency_check = self.pathology_detector.check_module_consistency(
+            pathology_results, bone_results
+        )
+        
+        # 8. IMPROVEMENT 4: Add clinical evidence for explainability
+        clinical_evidence = self.pathology_detector.add_clinical_evidence(
+            pathology_results, pathology_results
+        )
+        
+        # 9. Generate annotated image
         annotated_img, img_base64 = self.generate_annotated_image(processed_image, pathology_results)
         
-        # 8. Generate clinical summary
+        # 10. Generate enhanced clinical summary and recommendations
         clinical_summary = self._generate_clinical_summary(pathology_results, bone_results)
         
         return {
@@ -139,6 +148,24 @@ class ImageAnalyzerService:
             'annotated_image_base64': img_base64,
             'recommendations': self._generate_recommendations(
                 pathology_results, bone_results
+            ),
+            # New fields for improvements
+            'explainability': {
+                'clinical_evidence': clinical_evidence,
+                'confidence_assessment': {
+                    'model_confidence': pathology_results['primary_pathology']['confidence'],
+                    'is_confident': pathology_results['primary_pathology']['confidence'] >= 0.70,
+                    'confidence_threshold': 0.70,
+                    'warning': (
+                        'Low confidence - clinical review recommended' 
+                        if pathology_results['primary_pathology']['confidence'] < 0.70 
+                        else None
+                    )
+                }
+            },
+            'consistency_check': consistency_check,
+            'quality_flags': self._assess_analysis_quality(
+                pathology_results, consistency_check
             )
         }
     
@@ -237,8 +264,119 @@ class ImageAnalyzerService:
         
         return '\n'.join(lines)
     
-    def _generate_recommendations(self, pathology: Dict, bone: Dict) -> List[str]:
-        """Generate clinical recommendations"""
+    def _generate_recommendations(self, pathology: Dict, bone: Dict) -> Dict:
+        """
+        Generate comprehensive clinical recommendations with improved logic
+        Includes: confidence threshold, location/tooth type context, explainability
+        """
+        intervention = pathology['requires_intervention']
+        pathology_name = pathology['primary_pathology']['name']
+        
+        # Get treatment recommendation from pathology detector
+        treatment_recommendation = intervention.get('treatment_recommendation')
+        
+        # Build comprehensive recommendations
+        recommendations = {
+            'primary_action': intervention['recommended_action'],
+            'urgency_level': intervention['urgency'],
+            'confidence_warning': intervention.get('confidence_warning', False),
+            'treatment_details': treatment_recommendation,
+            'clinical_reasoning': intervention.get('clinical_reasoning', ''),
+            'supporting_findings': [],
+            'follow_up_protocol': self._get_followup_protocol(pathology_name, bone)
+        }
+        
+        # Add bone-based recommendations as supporting findings
+        if bone.get('recommendations'):
+            recommendations['supporting_findings'].append({
+                'type': 'Bone Analysis',
+                'finding': bone['overall_bone_quality'],
+                'recommendation': bone['recommendations']
+            })
+        
+        # Location-specific considerations
+        region = pathology['tooth_region']['name']
+        tooth_location_note = self._get_location_specific_note(pathology_name, region)
+        if tooth_location_note:
+            recommendations['supporting_findings'].append({
+                'type': 'Location Context',
+                'finding': region,
+                'note': tooth_location_note
+            })
+        
+        # Confidence assessment
+        confidence = pathology['primary_pathology']['confidence']
+        if confidence < 0.70:
+            recommendations['action_required'] = 'CLINICAL_REVIEW_REQUIRED'
+            recommendations['note'] = (
+                f'Model confidence is {confidence:.1%} (below 70% decision threshold). '
+                f'Clinical examination and possibly additional imaging (CBCT, periapical) recommended '
+                f'before finalizing treatment plan.'
+            )
+        elif confidence < 0.85:
+            recommendations['action_required'] = 'CLINICAL_CORRELATION'
+            recommendations['note'] = f'Moderate confidence ({confidence:.1%}); clinical correlation essential'
+        else:
+            recommendations['action_required'] = 'PROCEED_WITH_TREATMENT'
+        
+        return recommendations
+    
+    def _get_location_specific_note(self, pathology_name: str, region: str) -> str:
+        """Get location-specific clinical notes"""
+        notes = {
+            ('Caries', 'Anterior_Upper'): 'Anterior maxillary location - high esthetic impact; conservative approach preferred',
+            ('Caries', 'Anterior_Lower'): 'Anterior mandibular location - lower caries risk; monitor closely',
+            ('Infection', 'Anterior_Upper'): 'Anterior maxillary infection - rapid spread risk; urgent intervention advised',
+            ('Bone_Loss', 'Molar_Upper'): 'Maxillary molar bone loss - assess implant vs conventional restoration',
+            ('Bone_Loss', 'Molar_Lower'): 'Mandibular molar bone loss - consider surgical vs non-surgical treatment',
+            ('Fracture', 'Anterior_Upper'): 'Anterior fracture - high priority for esthetic/functional restoration',
+        }
+        
+        return notes.get((pathology_name, region), '')
+    
+    def _get_followup_protocol(self, pathology_name: str, bone: Dict) -> Dict:
+        """Get follow-up protocol based on pathology and bone status"""
+        protocols = {
+            'Caries': {
+                'imaging': 'Periapical radiograph',
+                'interval': '6 months',
+                'clinical_exam': '3-6 months post-restoration',
+                'vitality_test': 'If restoration extending into pulp chamber'
+            },
+            'Infection': {
+                'imaging': 'Periapical or CBCT at 6 weeks, 6 months, 12 months',
+                'interval': '6-12 months for healing verification',
+                'clinical_exam': '2 weeks post-treatment, then periodically',
+                'parameters': 'Check for symptom resolution, percussion response'
+            },
+            'Bone_Loss': {
+                'imaging': 'Full mouth radiographs or CBCT annually',
+                'interval': '3-4 months (periodontal maintenance)',
+                'clinical_exam': 'Probing depths, plaque/bleeding index',
+                'parameters': 'Monitor for disease progression or stabilization'
+            },
+            'Fracture': {
+                'imaging': 'Periapical radiograph at 2 weeks, 1 month, 6 months, 12 months',
+                'interval': 'Every 3 months for first year',
+                'clinical_exam': 'Vitality testing, mobility assessment',
+                'parameters': 'Confirm healing, rule out root resorption'
+            },
+            'Impacted_Teeth': {
+                'imaging': 'Periodic radiographs (CBCT if symptomatic)',
+                'interval': 'Every 12-24 months if non-operative',
+                'clinical_exam': 'Assess for eruption, cyst formation, adjacent tooth health',
+                'parameters': 'Decision point for extraction if complications arise'
+            }
+        }
+        
+        return protocols.get(pathology_name, {
+            'imaging': 'Routine follow-up imaging as indicated',
+            'interval': 'As recommended by treating clinician',
+            'clinical_exam': 'Standard post-treatment evaluation'
+        })
+    
+    def _generate_recommendations_old(self, pathology: Dict, bone: Dict) -> List[str]:
+        """Generate clinical recommendations (legacy format)"""
         recommendations = []
         
         # Pathology-based recommendations
@@ -260,6 +398,7 @@ class ImageAnalyzerService:
             recommendations.append('Normal findings - routine follow-up as per standard protocol')
         
         return recommendations
+
     
     def _generate_batch_summary(self, images: List[Dict]) -> Dict:
         """Generate summary for batch analysis"""
@@ -344,6 +483,37 @@ class ImageAnalyzerService:
         img_base64 = base64.b64encode(buffer).decode('utf-8')
         
         return img_bgr, img_base64
+    
+    def _assess_analysis_quality(self, pathology_results: Dict, 
+                                consistency_check: Dict) -> List[str]:
+        """
+        Assess quality of analysis and flag potential issues
+        
+        Returns list of quality flags/warnings
+        """
+        flags = []
+        
+        # Check confidence level
+        confidence = pathology_results['primary_pathology']['confidence']
+        if confidence < 0.70:
+            flags.append('LOW_CONFIDENCE - Needs further evaluation')
+        elif confidence < 0.75:
+            flags.append('MODERATE_CONFIDENCE - Clinical correlation recommended')
+        
+        # Check for module contradictions
+        if not consistency_check['is_consistent']:
+            flags.append('INCONSISTENCY_DETECTED - See consistency check')
+        
+        # Check for multiple abnormal findings
+        abnormal_count = sum(1 for p in pathology_results['all_pathologies'] if p['name'] != 'Normal')
+        if abnormal_count > 2:
+            flags.append('MULTIPLE_PATHOLOGIES - Complex case; priority review')
+        
+        # Flag emergency conditions
+        if pathology_results['requires_intervention'].get('urgency') == 'EMERGENCY':
+            flags.append('URGENT - Requires immediate clinical attention')
+        
+        return flags
     
     def _error_response(self, error_msg: str) -> Dict:
         """Generate error response"""
