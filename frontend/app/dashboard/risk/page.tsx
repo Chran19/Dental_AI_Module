@@ -271,9 +271,9 @@ export default function RiskPage() {
                                 patient_id: e.target.value,
                               })
                             }
-                            className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                            className="w-full text-sm bg-white text-black font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                           >
-                            <option value="">-- Choose a patient --</option>
+                            <option value="" className="bg-gray-700\">-- Choose a patient --</option>
                             {patients.map((patient: any) => (
                               <option key={patient.id} value={patient.id}>
                                 {patient.first_name} {patient.last_name} (
@@ -292,7 +292,7 @@ export default function RiskPage() {
                             onChange={(e) =>
                               setFormData({ ...formData, age: e.target.value })
                             }
-                            className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                            className="w-full text-sm bg-white text-black font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                           />
                         </div>
                         <div>
@@ -307,11 +307,11 @@ export default function RiskPage() {
                                 gender: e.target.value,
                               })
                             }
-                            className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                            className="w-full text-sm bg-white text-black font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                           >
-                            <option>Male</option>
-                            <option>Female</option>
-                            <option>Other</option>
+                            <option className=\"bg-gray-700\">Male</option>
+                            <option className=\"bg-gray-700\">Female</option>
+                            <option className=\"bg-gray-700\">Other</option>
                           </select>
                         </div>
                         <div>
@@ -326,11 +326,11 @@ export default function RiskPage() {
                                 smoking_status: e.target.value,
                               })
                             }
-                            className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                            className="w-full text-sm bg-white text-black font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                           >
-                            <option>Non-Smoker</option>
-                            <option value="Former_Smoker">Former Smoker</option>
-                            <option value="Current_Smoker">
+                            <option className=\"bg-gray-700\">Non-Smoker</option>
+                            <option value="Former_Smoker" className=\"bg-gray-700\">Former Smoker</option>
+                            <option value="Current_Smoker\" className=\"bg-gray-700\">
                               Current Smoker
                             </option>
                           </select>

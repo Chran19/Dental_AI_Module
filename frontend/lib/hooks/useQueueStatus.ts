@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/app/providers';
 import { updateQueueStatus } from '@/lib/store';
 
@@ -9,6 +9,7 @@ import { updateQueueStatus } from '@/lib/store';
  */
 export function useQueueStatus(patientId: string) {
   const { user } = useAuth();
+  const [queueId, setQueueId] = useState<string | null>(null);
 
   // Auto-mark as In_Consultation when patient detail page is accessed
   useEffect(() => {
@@ -29,12 +30,13 @@ export function useQueueStatus(patientId: string) {
               (item: any) => item.patient_id === patientId,
             );
 
-            if (
-              patientQueueItem &&
-              patientQueueItem.status === 'Waiting'
-            ) {
-              // Auto-update status to In_Consultation
-              await updateQueueStatus(patientQueueItem.id, 'In_Consultation');
+            if (patientQueueItem) {
+              setQueueId(patientQueueItem.id);
+              
+              if (patientQueueItem.status === 'Waiting') {
+                // Auto-update status to In_Consultation
+                await updateQueueStatus(patientQueueItem.id, 'In_Consultation');
+              }
             }
           }
         } catch (err) {
@@ -48,32 +50,16 @@ export function useQueueStatus(patientId: string) {
 
   // Function to mark patient workflow as complete
   const markAsComplete = useCallback(async () => {
-    if (patientId && user?.role === 'DOCTOR') {
+    if (queueId) {
       try {
-        const response = await fetch('/api/queue/active', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const queueItems = await response.json();
-          const patientQueueItem = queueItems.find(
-            (item: any) => item.patient_id === patientId,
-          );
-
-          if (patientQueueItem) {
-            await updateQueueStatus(patientQueueItem.id, 'Completed');
-            return true;
-          }
-        }
+        await updateQueueStatus(queueId, 'Completed');
+        return true;
       } catch (err) {
         console.error('Failed to mark patient as complete:', err);
       }
     }
     return false;
-  }, [patientId, user?.role]);
+  }, [queueId]);
 
-  return { markAsComplete };
+  return { markAsComplete, queueId };
 }

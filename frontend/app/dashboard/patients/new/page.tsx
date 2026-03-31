@@ -236,11 +236,7 @@ export default function PatientIntakePage() {
       }
 
       // Add patient to queue automatically
-      await checkInPatient(
-        patientId,
-        undefined,
-        formData.reason_of_visit,
-      );
+      await checkInPatient(patientId, undefined, formData.reason_of_visit);
 
       setCreatedPatientId(patientId);
       setCreatedPatientName(patientName);
@@ -371,7 +367,7 @@ export default function PatientIntakePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 autoFocus
-                className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium"
+                className="w-full pl-12 pr-4 py-3 border border-gray-300 bg-white text-black rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium placeholder-gray-500"
               />
               {isSearching && (
                 <Loader2
@@ -549,8 +545,7 @@ export default function PatientIntakePage() {
                 Date of Birth
               </p>
               <p className="font-bold text-gray-900 text-base">
-                {formData.date_of_birth}{" "}
-                {age !== null && `(${age} years old)`}
+                {formData.date_of_birth} {age !== null && `(${age} years old)`}
               </p>
             </div>
             <div>
@@ -709,7 +704,7 @@ export default function PatientIntakePage() {
                   value={formData.first_name}
                   onChange={handleChange}
                   readOnly={mode === "returning"}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium ${errors.first_name ? "border-red-500" : "border-slate-300"} ${mode === "returning" ? "bg-slate-50 text-slate-600" : ""}`}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium bg-white text-black border-gray-300 placeholder-gray-500 ${errors.first_name ? "border-red-500" : ""} ${mode === "returning" ? "bg-gray-100 text-gray-700" : ""}`}
                 />
                 {errors.first_name && (
                   <p className="text-red-600 text-xs font-bold mt-1">
@@ -732,7 +727,7 @@ export default function PatientIntakePage() {
                   value={formData.last_name}
                   onChange={handleChange}
                   readOnly={mode === "returning"}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium ${errors.last_name ? "border-red-500" : "border-slate-300"} ${mode === "returning" ? "bg-slate-50 text-slate-600" : ""}`}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium bg-white text-black border-gray-300 placeholder-gray-500 ${errors.last_name ? "border-red-500" : ""} ${mode === "returning" ? "bg-gray-100 text-gray-700" : ""}`}
                 />
                 {errors.last_name && (
                   <p className="text-red-600 text-xs font-bold mt-1">
@@ -751,7 +746,7 @@ export default function PatientIntakePage() {
                   value={formData.date_of_birth}
                   onChange={handleChange}
                   readOnly={mode === "returning"}
-                  className={`w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium ${mode === "returning" ? "bg-slate-50 text-slate-600" : ""} ${errors.date_of_birth ? "border-red-500" : ""}`}
+                  className={`w-full px-4 py-2 border border-gray-300 bg-white text-black rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium ${mode === "returning" ? "bg-gray-100 text-gray-700" : ""} ${errors.date_of_birth ? "border-red-500" : ""}`}
                 />
                 {errors.date_of_birth && (
                   <p className="text-red-600 text-xs font-bold mt-1">
@@ -773,7 +768,7 @@ export default function PatientIntakePage() {
                   value={formData.gender}
                   onChange={handleChange}
                   disabled={mode === "returning"}
-                  className={`w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium bg-white ${mode === "returning" ? "bg-slate-50 text-slate-600" : ""}`}
+                  className={`w-full px-4 py-2 border border-gray-300 bg-white text-black rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium ${mode === "returning" ? "bg-gray-100 text-gray-700" : ""}`}
                 >
                   <option value="">Select...</option>
                   <option value="Male">Male</option>
@@ -800,7 +795,7 @@ export default function PatientIntakePage() {
                       type="text"
                       value={formData.parent_guardian_name}
                       onChange={handleChange}
-                      className={`w-full px-4 py-2 border rounded-lg text-sm font-medium ${errors.parent_guardian_name ? "border-red-500" : "border-slate-300"}`}
+                      className={`w-full px-4 py-2 border rounded-lg text-sm font-medium bg-white text-black border-gray-300 placeholder-gray-500 ${errors.parent_guardian_name ? "border-red-500" : ""}`}
                     />
                     {errors.parent_guardian_name && (
                       <p className="text-red-600 text-xs font-bold">
@@ -817,7 +812,7 @@ export default function PatientIntakePage() {
                       type="tel"
                       value={formData.parent_guardian_phone}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white text-black placeholder-gray-500"
                     />
                   </div>
                 </div>
@@ -869,7 +864,7 @@ export default function PatientIntakePage() {
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="(555) 000-0000"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium ${errors.phone ? "border-red-500" : "border-slate-300"}`}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium bg-white text-black border-gray-300 placeholder-gray-500 ${errors.phone ? "border-red-500" : ""}`}
                 />
                 {errors.phone && (
                   <p className="text-red-600 text-xs font-bold mt-1">
@@ -887,7 +882,7 @@ export default function PatientIntakePage() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="patient@example.com"
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium ${errors.email ? "border-red-500" : "border-slate-300"}`}
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium bg-white text-black border-gray-300 placeholder-gray-500 ${errors.email ? "border-red-500" : ""}`}
                 />
                 {errors.email && (
                   <p className="text-red-600 text-xs font-bold mt-1">
@@ -918,7 +913,7 @@ export default function PatientIntakePage() {
                 value={formData.reason_of_visit}
                 onChange={handleChange}
                 placeholder="E.g., Routine check-up, Toothache in lower left molar, Crown follow-up..."
-                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm font-medium resize-none ${errors.reason_of_visit ? "border-red-500" : "border-slate-300"}`}
+                className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500 outline-none transition-all text-sm font-medium resize-none bg-white text-black border-gray-300 placeholder-gray-500 ${errors.reason_of_visit ? "border-red-500" : ""}`}
               />
               {errors.reason_of_visit && (
                 <p className="text-red-600 text-xs font-bold mt-1">
@@ -945,7 +940,7 @@ export default function PatientIntakePage() {
                     name="emergency_contact_name"
                     value={formData.emergency_contact_name}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white text-black placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -957,7 +952,7 @@ export default function PatientIntakePage() {
                     name="emergency_contact_phone"
                     value={formData.emergency_contact_phone}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white text-black placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
                 <div className="space-y-2 col-span-1 md:col-span-2">
@@ -970,7 +965,7 @@ export default function PatientIntakePage() {
                     placeholder="e.g. Penicillin, Latex (leave blank if none)"
                     value={formData.allergies}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white text-black placeholder-gray-500 focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
               </div>

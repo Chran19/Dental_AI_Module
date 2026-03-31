@@ -1,45 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useAuth } from "@/app/providers";
 import { Edit3, Save, X, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { fetchAPI } from "@/lib/api";
 
 interface PatientData {
-  id?: number;
-  name: string;
-  email: string;
-  phone: string;
-  age: number;
+  id?: string;
+  first_name: string;
+  last_name: string;
+  contact_email: string;
+  contact_phone: string;
+  age?: number;
   gender: string;
-  address: string;
-  date_of_birth: string;
-  medical_conditions: string;
-  allergies: string;
-  insurance: string;
+  address?: string;
+  dob: string;
+  medical_conditions?: string;
+  allergies?: string;
+  insurance?: string;
 }
 
 export default function EditPatientPage({
-  params,
+  params: paramsPromise,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const params = use(paramsPromise);
+  const patientId = params.id;
   const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<PatientData>({
-    name: "",
-    email: "",
-    phone: "",
-    age: 0,
+    first_name: "",
+    last_name: "",
+    contact_email: "",
+    contact_phone: "",
     gender: "",
-    address: "",
-    date_of_birth: "",
-    medical_conditions: "",
-    allergies: "",
-    insurance: "",
+    dob: "",
   });
 
   // Fetch patient data on mount
@@ -48,42 +47,56 @@ export default function EditPatientPage({
       try {
         setLoading(true);
         setError(null);
-        const response = await fetchAPI(`/patients/${params.id}`);
+        console.log("[EditPatient] Fetching patient:", {
+          patientId,
+          isAuthenticated,
+          url: `/patients/${patientId}`,
+        });
 
-        if (!response.ok) {
-          throw new Error(
-            `Failed to fetch patient data: ${response.statusText}`,
-          );
-        }
+        // fetchAPI already returns parsed data and throws on errors
+        const data = await fetchAPI(`/patients/${patientId}`);
 
-        const data = await response.json();
+        console.log("[EditPatient] Loaded data:", data);
+
         setFormData({
           id: data.id,
-          name: data.name || "",
-          email: data.email || "",
-          phone: data.phone || "",
-          age: data.age || 0,
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          contact_email: data.contact_email || "",
+          contact_phone: data.contact_phone || "",
           gender: data.gender || "",
-          address: data.address || "",
-          date_of_birth: data.date_of_birth || "",
-          medical_conditions: data.medical_conditions || "",
-          allergies: data.allergies || "",
-          insurance: data.insurance || "",
+          dob: data.dob || "",
         });
       } catch (err) {
+        console.error("[EditPatient] Caught error:", err);
         const errorMessage =
-          err instanceof Error ? err.message : "Failed to load patient data";
+          err instanceof Error
+            ? err.message
+            : typeof err === "string"
+              ? err
+              : JSON.stringify(err) || "Failed to load patient data";
         setError(errorMessage);
-        console.error("Error fetching patient:", err);
+        console.error("Error fetching patient:", {
+          error: err,
+          errorType: typeof err,
+          message: errorMessage,
+          patientId,
+          isAuthenticated,
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    if (isAuthenticated && params.id) {
+    if (isAuthenticated && patientId) {
       fetchPatientData();
+    } else {
+      console.warn("[EditPatient] Skipping fetch:", {
+        isAuthenticated,
+        patientId,
+      });
     }
-  }, [isAuthenticated, params.id]);
+  }, [isAuthenticated, patientId]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -103,7 +116,7 @@ export default function EditPatientPage({
     setError(null);
 
     try {
-      const response = await fetchAPI(`/patients/${params.id}`, {
+      const data = await fetchAPI(`/patients/${patientId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -111,11 +124,7 @@ export default function EditPatientPage({
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        throw new Error(`Failed to update patient: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      // fetchAPI returns parsed data directly and throws on error
       setFormData(data);
       alert("Patient information updated successfully!");
     } catch (err) {
@@ -156,7 +165,7 @@ export default function EditPatientPage({
           <p className="text-gray-600 mt-1">Update patient information</p>
         </div>
         <Link
-          href={`/dashboard/patients/${params.id}`}
+          href={`/dashboard/patients/${patientId}`}
           className="inline-flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
         >
           <X size={20} />
@@ -177,21 +186,41 @@ export default function EditPatientPage({
               </h2>
 
               <div className="space-y-4">
-                {/* Name */}
+                {/* First Name */}
                 <div>
                   <label
-                    htmlFor="name"
+                    htmlFor="first_name"
                     className="block text-sm font-medium text-black mb-2"
                   >
-                    Full Name *
+                    First Name *
                   </label>
                   <input
                     type="text"
-                    id="name"
-                    name="name"
-                    value={formData.name}
+                    id="first_name"
+                    name="first_name"
+                    value={formData.first_name}
                     onChange={handleChange}
-                    placeholder="Enter full name"
+                    placeholder="Enter first name"
+                    className="w-full px-4 py-2.5 border border-gray-300 bg-white text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
+                    required
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label
+                    htmlFor="last_name"
+                    className="block text-sm font-medium text-black mb-2"
+                  >
+                    Last Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="last_name"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    placeholder="Enter last name"
                     className="w-full px-4 py-2.5 border border-gray-300 bg-white text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
                     required
                   />
@@ -200,16 +229,16 @@ export default function EditPatientPage({
                 {/* Email */}
                 <div>
                   <label
-                    htmlFor="email"
+                    htmlFor="contact_email"
                     className="block text-sm font-medium text-black mb-2"
                   >
                     Email Address *
                   </label>
                   <input
                     type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
+                    id="contact_email"
+                    name="contact_email"
+                    value={formData.contact_email}
                     onChange={handleChange}
                     placeholder="Enter email address"
                     className="w-full px-4 py-2.5 border border-gray-300 bg-white text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
@@ -227,9 +256,9 @@ export default function EditPatientPage({
                   </label>
                   <input
                     type="tel"
-                    id="phone"
-                    name="phone"
-                    value={formData.phone}
+                    id="contact_phone"
+                    name="contact_phone"
+                    value={formData.contact_phone}
                     onChange={handleChange}
                     placeholder="Enter phone number"
                     className="w-full px-4 py-2.5 border border-gray-300 bg-white text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
@@ -240,16 +269,16 @@ export default function EditPatientPage({
                 {/* Date of Birth */}
                 <div>
                   <label
-                    htmlFor="date_of_birth"
+                    htmlFor="dob"
                     className="block text-sm font-medium text-black mb-2"
                   >
                     Date of Birth
                   </label>
                   <input
                     type="date"
-                    id="date_of_birth"
-                    name="date_of_birth"
-                    value={formData.date_of_birth}
+                    id="dob"
+                    name="dob"
+                    value={formData.dob}
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 border border-gray-300 bg-white text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
@@ -270,114 +299,11 @@ export default function EditPatientPage({
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 border border-gray-300 bg-white text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="" className="bg-gray-700">
-                      Select Gender
-                    </option>
-                    <option value="Male" className="bg-gray-700">
-                      Male
-                    </option>
-                    <option value="Female" className="bg-gray-700">
-                      Female
-                    </option>
-                    <option value="Other" className="bg-gray-700">
-                      Other
-                    </option>
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
                   </select>
-                </div>
-
-                {/* Age */}
-                <div>
-                  <label
-                    htmlFor="age"
-                    className="block text-sm font-medium text-black mb-2"
-                  >
-                    Age
-                  </label>
-                  <input
-                    type="number"
-                    id="age"
-                    name="age"
-                    value={formData.age || ""}
-                    onChange={handleChange}
-                    placeholder="Enter age"
-                    className="w-full px-4 py-2.5 border border-gray-300 bg-white text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
-                  />
-                </div>
-
-                {/* Address */}
-                <div>
-                  <label
-                    htmlFor="address"
-                    className="block text-sm font-medium text-black mb-2"
-                  >
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="Enter street address"
-                    className="w-full px-4 py-2.5 border border-gray-300 bg-white text-black rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500"
-                  />
-                </div>
-
-                {/* Medical Conditions */}
-                <div>
-                  <label
-                    htmlFor="medical_conditions"
-                    className="block text-sm font-medium text-black mb-2"
-                  >
-                    Medical Conditions
-                  </label>
-                  <textarea
-                    id="medical_conditions"
-                    name="medical_conditions"
-                    value={formData.medical_conditions}
-                    onChange={handleChange}
-                    placeholder="Enter medical conditions (comma-separated)"
-                    rows={3}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Allergies */}
-                <div>
-                  <label
-                    htmlFor="allergies"
-                    className="block text-sm font-medium text-black mb-2"
-                  >
-                    Allergies
-                  </label>
-                  <textarea
-                    id="allergies"
-                    name="allergies"
-                    value={formData.allergies}
-                    onChange={handleChange}
-                    placeholder="Enter known allergies (comma-separated)"
-                    rows={3}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Insurance */}
-                <div>
-                  <label
-                    htmlFor="insurance"
-                    className="block text-sm font-medium text-black mb-2"
-                  >
-                    Insurance Provider
-                  </label>
-                  <input
-                    type="text"
-                    id="insurance"
-                    name="insurance"
-                    value={formData.insurance}
-                    onChange={handleChange}
-                    placeholder="Enter insurance provider"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
                 </div>
               </div>
             </div>
@@ -393,21 +319,25 @@ export default function EditPatientPage({
                   <p className="text-xs text-gray-700 font-semibold uppercase">
                     Name
                   </p>
-                  <p className="font-medium text-gray-900">{formData.name}</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.first_name} {formData.last_name}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-700 font-semibold uppercase">
                     Email
                   </p>
                   <p className="font-medium text-gray-900 truncate">
-                    {formData.email}
+                    {formData.contact_email}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-700 font-semibold uppercase">
                     Phone
                   </p>
-                  <p className="font-medium text-gray-900">{formData.phone}</p>
+                  <p className="font-medium text-gray-900">
+                    {formData.contact_phone}
+                  </p>
                 </div>
               </div>
 

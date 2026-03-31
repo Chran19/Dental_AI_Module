@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/app/providers";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQueueStatus } from "@/lib/hooks/useQueueStatus";
 import { Patient } from "@/lib/types/patient";
-import { fetchPatientById } from "@/lib/store";
+import { fetchPatientById, updateQueueStatus } from "@/lib/store";
 import {
   User,
   Phone,
@@ -24,21 +24,24 @@ import {
   CheckCircle,
   Activity,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function PatientProfilePage() {
   const { isAuthenticated, user } = useAuth();
   const params = useParams();
+  const router = useRouter();
   const patientId = params?.id as string;
 
   // Auto-mark as In_Consultation when doctor accesses patient
-  useQueueStatus(patientId);
+  const { queueId } = useQueueStatus(patientId);
 
   const [patient, setPatient] = useState<Patient | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [isEndingConsultation, setIsEndingConsultation] = useState(false);
 
   useEffect(() => {
     if (!patientId) return;
@@ -62,6 +65,26 @@ export default function PatientProfilePage() {
 
     loadPatient();
   }, [patientId]);
+
+  const handleEndConsultation = async () => {
+    if (!queueId) {
+      console.error("No active queue ID found");
+      return;
+    }
+
+    setIsEndingConsultation(true);
+    try {
+      await updateQueueStatus(queueId, "Completed");
+      // Redirect back to queue after successful completion
+      setTimeout(() => {
+        router.push("/dashboard/queue");
+      }, 500);
+    } catch (err) {
+      console.error("Failed to end consultation:", err);
+      alert("Failed to end consultation. Please try again.");
+      setIsEndingConsultation(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -383,6 +406,16 @@ export default function PatientProfilePage() {
               <button className="w-full px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                 Schedule Appointment
               </button>
+              {user?.role === "DOCTOR" && queueId && (
+                <button
+                  onClick={handleEndConsultation}
+                  disabled={isEndingConsultation}
+                  className="w-full px-4 py-2 text-left text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                >
+                  <LogOut size={16} />
+                  {isEndingConsultation ? "Completing..." : "End Consultation"}
+                </button>
+              )}
             </div>
           </div>
 

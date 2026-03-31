@@ -5,7 +5,9 @@ interface FormInputProps {
   helpText?: string;
   isTextarea?: boolean;
   rows?: number;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onChange?: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => void;
   value?: string | number;
   type?: string;
   placeholder?: string;
@@ -31,7 +33,7 @@ export default function FormInput({
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-black mb-2">
           {label}
           {required && <span className="text-red-500">*</span>}
         </label>
@@ -43,7 +45,7 @@ export default function FormInput({
         className={`w-full px-4 py-2.5 border rounded-lg font-medium text-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
           error
             ? "border-red-300 bg-red-50 text-red-900"
-            : "border-gray-300 bg-white text-gray-900 placeholder-gray-700"
+            : "border-gray-300 bg-white text-black placeholder-gray-500"
         } disabled:bg-gray-100 disabled:text-gray-700 disabled:cursor-not-allowed`}
       />
 

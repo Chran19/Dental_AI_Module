@@ -298,7 +298,7 @@ export default function ClinicalPage() {
                         required
                         list="patients"
                         placeholder="Search Name or ID"
-                        className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        className="w-full text-sm bg-white text-black font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                       />
                       <datalist id="patients">
                         <option value="550e8400-e29b-41d4-a716-446655440000">
@@ -323,7 +323,7 @@ export default function ClinicalPage() {
                           setFormData({ ...formData, age: e.target.value })
                         }
                         required
-                        className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        className="w-full text-sm bg-white text-black font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                       />
                     </div>
                     <div className="space-y-2">
@@ -335,11 +335,17 @@ export default function ClinicalPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, gender: e.target.value })
                         }
-                        className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        className="w-full text-sm bg-white text-black font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                       >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="Male" className="bg-gray-700">
+                          Male
+                        </option>
+                        <option value="Female" className="bg-gray-700">
+                          Female
+                        </option>
+                        <option value="Other" className="bg-gray-700">
+                          Other
+                        </option>
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -357,7 +363,7 @@ export default function ClinicalPage() {
                         }
                         required
                         placeholder="e.g. Pain in lower left jaw"
-                        className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                        className="w-full text-sm bg-white text-black font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                       />
                     </div>
                   </div>
@@ -388,7 +394,7 @@ export default function ClinicalPage() {
                           symptom_duration_days: e.target.value,
                         })
                       }
-                      className="w-full md:w-1/3 text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                      className="w-full md:w-1/3 text-sm bg-white text-black font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                     />
                   </div>
 
@@ -511,7 +517,7 @@ export default function ClinicalPage() {
                               jaw_region: e.target.value,
                             })
                           }
-                          className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                          className="w-full text-sm bg-white text-black font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
                         >
                           <option value="Anterior_Maxilla">
                             Anterior Maxilla
@@ -634,11 +640,17 @@ export default function ClinicalPage() {
                           smoking_status: e.target.value,
                         })
                       }
-                      className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
+                      className="w-full text-sm bg-white text-black font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition"
                     >
-                      <option value="Non-Smoker">Non-Smoker</option>
-                      <option value="Former_Smoker">Former Smoker</option>
-                      <option value="Current_Smoker">Current Smoker</option>
+                      <option value="Non-Smoker" className="bg-gray-700">
+                        Non-Smoker
+                      </option>
+                      <option value="Former_Smoker" className="bg-gray-700">
+                        Former Smoker
+                      </option>
+                      <option value="Current_Smoker" className="bg-gray-700">
+                        Current Smoker
+                      </option>
                     </select>
                   </div>
 
