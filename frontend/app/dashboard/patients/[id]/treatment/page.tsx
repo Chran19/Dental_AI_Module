@@ -6,8 +6,12 @@ import Link from "next/link";
 import StepNavigation from "@/components/clinical/StepNavigation";
 import { useAuth } from "@/app/providers";
 import {
+  getTreatmentsByPatient,
+  suggestTreatment,
+  downloadTreatmentReportPDF,
+} from "@/lib/api";
+import {
   Plus,
-  DollarSign,
   Calendar,
   CheckCircle,
   Clock,
@@ -18,28 +22,26 @@ import {
   AlignLeft,
   Activity,
   Zap,
-  ShieldCheck,
-  CreditCard,
-  ChevronRight,
   ClipboardList,
+  Download,
 } from "lucide-react";
 
 interface TreatmentPlan {
-  id: string;
-  patient_name: string;
-  patient_id: string;
-  diagnosis_ref: string;
+  id?: string;
+  case_id?: string;
+  patient_name?: string;
+  patient_id?: string;
+  diagnosis_ref?: string;
   procedure: string;
   status: "Planned" | "In Progress" | "Completed" | "Cancelled";
   stage: "Pre-op" | "Operative" | "Post-op" | "Review";
   start_date: string;
   end_date?: string;
   days_remaining?: number;
-  cost: number;
-  paid: number;
-  insurance_covered: boolean;
   progress: number;
   description: string;
+  plan_date?: string;
+  [key: string]: any;
 }
 
 export default function TreatmentPage() {
@@ -48,6 +50,7 @@ export default function TreatmentPage() {
   const patientId = params?.id as string;
   const [plans, setPlans] = useState<TreatmentPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "timeline">("list");
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
@@ -55,91 +58,40 @@ export default function TreatmentPage() {
 
   // Modal form data
   const [modalData, setModalData] = useState({
-    patient: "John Doe (P001)",
-    diagnosis: "Dental Caries (Class II) - Left Molar",
     procedure: "Indirect Composite Inlay",
     description: "",
-    cost: "350",
-    insured: false,
   });
 
-  // Mock data
+  // Fetch treatment plans from API
   useEffect(() => {
-    if (isAuthenticated) {
-      setTimeout(() => {
-        setPlans([
-          {
-            id: "1",
-            patient_name: "John Doe",
-            patient_id: "P001",
-            diagnosis_ref: "Dental Caries (Class II)",
-            procedure: "Composite Restorations (x2)",
-            status: "In Progress",
-            stage: "Operative",
-            start_date: "2024-03-15",
-            end_date: "2024-04-10",
-            days_remaining: 12,
-            cost: 450,
-            paid: 200,
-            insurance_covered: true,
-            progress: 50,
-            description: "Composite filling on teeth 16, 26.",
-          },
-          {
-            id: "2",
-            patient_name: "Jane Smith",
-            patient_id: "P002",
-            diagnosis_ref: "Irreversible Pulpitis",
-            procedure: "Root Canal Therapy & Crown",
-            status: "Planned",
-            stage: "Pre-op",
-            start_date: "2024-04-05",
-            end_date: "2024-05-20",
-            days_remaining: 52,
-            cost: 1200,
-            paid: 0,
-            insurance_covered: false,
-            progress: 0,
-            description:
-              "Endodontic treatment tooth 36 followed by full ceramic crown.",
-          },
-          {
-            id: "3",
-            patient_name: "Mike Johnson",
-            patient_id: "P003",
-            diagnosis_ref: "Stage II Periodontitis",
-            procedure: "Non-Surgical Periodontal Therapy",
-            status: "Completed",
-            stage: "Review",
-            start_date: "2024-01-10",
-            end_date: "2024-02-28",
-            days_remaining: 0,
-            cost: 600,
-            paid: 600,
-            insurance_covered: true,
-            progress: 100,
-            description: "Full mouth scaling and root planing.",
-          },
-        ]);
-        setLoading(false);
-      }, 600);
+    if (isAuthenticated && patientId) {
+      const fetchPlans = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          const data = await getTreatmentsByPatient(patientId);
+          setPlans(Array.isArray(data) ? data : []);
+        } catch (err) {
+          console.error("[Treatment] Failed to fetch plans:", err);
+          setError("Failed to load treatment plans");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchPlans();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, patientId]);
 
   const stats = {
     pending: plans.filter((p) => p.status === "Planned").length,
     inProgress: plans.filter((p) => p.status === "In Progress").length,
     completed: plans.filter((p) => p.status === "Completed").length,
-    totalRevenue: plans.reduce((acc, curr) => acc + curr.paid, 0),
-    totalExpected: plans.reduce((acc, curr) => acc + curr.cost, 0),
   };
 
   const filteredPlans = plans.filter((p) => {
     // Patient Filter
-    const patientMatch =
-      !patientId ||
-      p.patient_id === patientId ||
-      patientId === "P001"; /* mock filter */
+    const patientMatch = !patientId || p.patient_id === patientId;
     if (!patientMatch) return false;
 
     if (filter === "active")
@@ -204,37 +156,45 @@ export default function TreatmentPage() {
   // Handler functions
   const handleManagePlan = (planId: string) => {
     setSelectedPlanId(planId);
-    // In a real app, this would open a detailed management modal or page
-    setShowModal(true);
+    // Future: open detailed management modal or page
   };
 
-  const handleCreatePlan = () => {
-    const newPlan: TreatmentPlan = {
-      id: String(plans.length + 1),
-      patient_name: modalData.patient.split(" (")[0],
-      patient_id: modalData.patient.split("(")[1]?.replace(")", "") || "P999",
-      diagnosis_ref: modalData.diagnosis,
-      procedure: modalData.procedure,
-      status: "Planned",
-      stage: "Pre-op",
-      start_date: new Date().toISOString().split("T")[0],
-      cost: parseInt(modalData.cost) || 0,
-      paid: 0,
-      insurance_covered: modalData.insured,
-      progress: 0,
-      description: modalData.description || "New treatment plan",
-    };
-    setPlans([...plans, newPlan]);
-    setShowModal(false);
-    // Reset modal data
-    setModalData({
-      patient: "John Doe (P001)",
-      diagnosis: "Dental Caries (Class II) - Left Molar",
-      procedure: "Indirect Composite Inlay",
-      description: "",
-      cost: "350",
-      insured: false,
-    });
+  const handleExportPDF = async () => {
+    if (!patientId) return;
+    try {
+      await downloadTreatmentReportPDF(patientId);
+    } catch (err) {
+      console.error("[Treatment] Failed to export PDF:", err);
+      setError("Failed to generate treatment plan PDF");
+    }
+  };
+
+  const handleCreatePlan = async () => {
+    if (!patientId) return;
+
+    try {
+      const payload = {
+        patient_id: patientId,
+        procedure: modalData.procedure,
+        description: modalData.description,
+      };
+
+      await suggestTreatment(payload);
+      setShowModal(false);
+
+      // Reset modal data
+      setModalData({
+        procedure: "Indirect Composite Inlay",
+        description: "",
+      });
+
+      // Refresh plans
+      const data = await getTreatmentsByPatient(patientId);
+      setPlans(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("[Treatment] Failed to create plan:", err);
+      setError("Failed to create treatment plan");
+    }
   };
 
   if (!isAuthenticated) return null;
@@ -261,15 +221,23 @@ export default function TreatmentPage() {
                 Orchestrate patient care pathways from diagnosis to completion
               </p>
             </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm"
-            >
-              <Plus size={20} /> New Treatment Plan
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleExportPDF}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-600 rounded-lg font-bold hover:bg-indigo-100 transition border border-indigo-200"
+              >
+                <Download size={20} /> Export PDF
+              </button>
+              <button
+                onClick={() => setShowModal(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm"
+              >
+                <Plus size={20} /> New Treatment Plan
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl">
               <p className="text-xs font-bold text-slate-500 uppercase">
                 Pending
@@ -293,22 +261,6 @@ export default function TreatmentPage() {
               <p className="text-2xl font-bold text-green-800 mt-1">
                 {stats.completed}
               </p>
-            </div>
-            <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl md:col-span-2 flex justify-between items-center">
-              <div>
-                <p className="text-xs font-bold text-emerald-700 uppercase">
-                  Revenue Realized / Projected
-                </p>
-                <p className="text-2xl font-bold text-emerald-900 mt-1">
-                  ${stats.totalRevenue}{" "}
-                  <span className="text-lg text-emerald-600 font-medium">
-                    / ${stats.totalExpected}
-                  </span>
-                </p>
-              </div>
-              <div className="bg-emerald-100 p-3 rounded-full text-emerald-600">
-                <DollarSign size={24} />
-              </div>
             </div>
           </div>
         </div>
@@ -354,15 +306,24 @@ export default function TreatmentPage() {
           <div className="text-center py-20">
             <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto"></div>
             <p className="mt-4 font-medium text-gray-600">
-              Loading schedules...
+              Loading treatment plans...
             </p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20 bg-white rounded-xl border border-red-200">
+            <AlertCircle className="mx-auto text-red-400 mb-4" size={56} />
+            <h3 className="text-lg font-bold text-red-800">{error}</h3>
+            <p className="text-sm text-red-600 mt-1">Please try again later</p>
           </div>
         ) : filteredPlans.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
             <Pill className="mx-auto text-gray-300 mb-4" size={56} />
             <h3 className="text-lg font-bold text-gray-800">
-              No active plans found
+              No treatment plans found
             </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Treatment plans will appear here once they are created
+            </p>
           </div>
         ) : viewMode === "list" ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -372,45 +333,18 @@ export default function TreatmentPage() {
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition flex flex-col"
               >
                 {/* Card Header */}
-                <div className="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-start">
-                  <div>
-                    <span
-                      className={`px-2.5 py-1 rounded text-xs font-bold border mb-2 inline-block ${getStatusStyle(plan.status)}`}
-                    >
-                      {plan.status}
-                    </span>
-                    <h3 className="font-bold text-gray-900 text-lg">
-                      {plan.procedure}
-                    </h3>
-                    <p className="text-sm font-medium text-indigo-600 flex items-center gap-1 mt-1">
-                      <User size={14} /> {plan.patient_name}{" "}
-                      <span className="text-gray-700 font-medium ml-1">
-                        ({plan.patient_id})
-                      </span>
-                    </p>
-                  </div>
-
-                  {/* Mini Financials */}
-                  <div className="flex flex-col items-end">
-                    <div className="flex items-center gap-1 text-sm font-bold text-gray-800">
-                      <DollarSign size={14} className="text-gray-400" />
-                      {plan.cost}
-                    </div>
-                    <div className="text-xs text-gray-500 font-medium">
-                      {plan.paid >= plan.cost ? (
-                        <span className="text-green-600 flex items-center gap-1">
-                          <CheckCircle size={10} /> Fully Paid
-                        </span>
-                      ) : (
-                        `Paid: $${plan.paid}`
-                      )}
-                    </div>
-                    {plan.insurance_covered && (
-                      <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-1 flex items-center gap-1 border border-blue-100">
-                        <ShieldCheck size={10} /> Insured
-                      </span>
-                    )}
-                  </div>
+                <div className="p-5 border-b border-gray-100 bg-gray-50">
+                  <span
+                    className={`px-2.5 py-1 rounded text-xs font-bold border mb-2 inline-block ${getStatusStyle(plan.status)}`}
+                  >
+                    {plan.status}
+                  </span>
+                  <h3 className="font-bold text-gray-900 text-lg">
+                    {plan.procedure}
+                  </h3>
+                  <p className="text-sm font-medium text-indigo-600 flex items-center gap-1 mt-1">
+                    <Activity size={14} /> {plan.patient_name || "Patient"}
+                  </p>
                 </div>
 
                 {/* Card Body */}
@@ -498,7 +432,7 @@ export default function TreatmentPage() {
                       </span>
                     </div>
                     <div className="col-span-7 relative flex items-center h-8 bg-gray-50 rounded-lg">
-                      {/* Mock horizontal bar calculation based on progress/dates */}
+                      {/* Timeline bar showing treatment progress */}
                       <div className="absolute left-0 w-full flex justify-between px-2 text-[10px] text-gray-300 pointer-events-none">
                         <span>Mar 1</span>
                         <span>Mar 15</span>
@@ -529,7 +463,7 @@ export default function TreatmentPage() {
         </div>
       </div>
 
-      {/* Smart New Plan Modal */}
+      {/* Treatment Plan Management Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
@@ -539,7 +473,7 @@ export default function TreatmentPage() {
                   Create Treatment Plan
                 </h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  Draft a new clinical pathway
+                  Design a new clinical pathway for this patient
                 </p>
               </div>
               <button
@@ -551,99 +485,29 @@ export default function TreatmentPage() {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-6 bg-white">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Select Patient
-                  </label>
-                  <select
-                    value={modalData.patient}
-                    onChange={(e) =>
-                      setModalData({ ...modalData, patient: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
-                  >
-                    <option>John Doe (P001)</option>
-                    <option>Jane Smith (P002)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Link Diagnosis
-                  </label>
-                  <select
-                    value={modalData.diagnosis}
-                    onChange={(e) =>
-                      setModalData({ ...modalData, diagnosis: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
-                  >
-                    <option>Dental Caries (Class II) - Left Molar</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Smart AI Suggestions */}
-              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-                <h4 className="text-xs uppercase tracking-wider font-bold text-indigo-800 mb-3 flex items-center gap-2">
-                  <Zap size={14} className="text-amber-500 fill-amber-500" /> AI
-                  Recommended Approaches
-                </h4>
-                <div className="space-y-2">
-                  <label className="flex items-center p-3 bg-white border border-indigo-100 rounded cursor-pointer hover:border-indigo-300">
-                    <input
-                      type="radio"
-                      name="plan"
-                      checked={
-                        modalData.procedure === "Indirect Composite Inlay"
-                      }
-                      onChange={() =>
-                        setModalData({
-                          ...modalData,
-                          procedure: "Indirect Composite Inlay",
-                          cost: "350",
-                        })
-                      }
-                      className="text-indigo-600 mr-3"
-                    />
-                    <div className="flex-1">
-                      <span className="font-bold text-gray-900 block">
-                        Indirect Composite Inlay
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        Conservative margin approach. Estimated $350.
-                      </span>
-                    </div>
-                  </label>
-                  <label className="flex items-center p-3 bg-white border border-gray-200 rounded cursor-pointer hover:border-indigo-300">
-                    <input
-                      type="radio"
-                      name="plan"
-                      checked={modalData.procedure === "Direct Composite Fill"}
-                      onChange={() =>
-                        setModalData({
-                          ...modalData,
-                          procedure: "Direct Composite Fill",
-                          cost: "200",
-                        })
-                      }
-                      className="text-indigo-600 mr-3"
-                    />
-                    <div className="flex-1">
-                      <span className="font-bold text-gray-900 block">
-                        Direct Composite Fill
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        Standard restorative. Estimated $200.
-                      </span>
-                    </div>
-                  </label>
-                </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                  Procedure Type
+                </label>
+                <select
+                  value={modalData.procedure}
+                  onChange={(e) =>
+                    setModalData({ ...modalData, procedure: e.target.value })
+                  }
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
+                >
+                  <option>Indirect Composite Inlay</option>
+                  <option>Direct Composite Fill</option>
+                  <option>Root Canal Therapy</option>
+                  <option>Crown Restoration</option>
+                  <option>Periodontal Therapy</option>
+                  <option>Dental Implant</option>
+                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Custom Procedure Description
+                  Treatment Description
                 </label>
                 <textarea
                   rows={3}
@@ -651,47 +515,20 @@ export default function TreatmentPage() {
                   onChange={(e) =>
                     setModalData({ ...modalData, description: e.target.value })
                   }
-                  placeholder="Additional clinician notes..."
+                  placeholder="Clinical notes and treatment details..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 placeholder-gray-600"
                 ></textarea>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Expected Cost ($)
-                  </label>
-                  <div className="relative">
-                    <DollarSign
-                      size={16}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    />
-                    <input
-                      type="number"
-                      value={modalData.cost}
-                      onChange={(e) =>
-                        setModalData({ ...modalData, cost: e.target.value })
-                      }
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-end pb-2">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={modalData.insured}
-                      onChange={(e) =>
-                        setModalData({
-                          ...modalData,
-                          insured: e.target.checked,
-                        })
-                      }
-                      className="w-5 h-5 text-indigo-600 rounded"
-                    />{" "}
-                    Applies to Insurance
-                  </label>
-                </div>
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+                <h4 className="text-xs uppercase tracking-wider font-bold text-indigo-800 mb-2 flex items-center gap-2">
+                  <Zap size={14} className="text-amber-500 fill-amber-500" /> AI
+                  Treatment Suggestions
+                </h4>
+                <p className="text-sm text-indigo-700">
+                  Treatment recommendations will be generated based on the
+                  patient's diagnosis and clinical data
+                </p>
               </div>
             </div>
 
@@ -706,7 +543,7 @@ export default function TreatmentPage() {
                 onClick={handleCreatePlan}
                 className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm"
               >
-                Initialize Plan
+                Create Plan
               </button>
             </div>
           </div>

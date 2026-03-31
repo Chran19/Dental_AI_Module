@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import StepNavigation from "@/components/clinical/StepNavigation";
 import { useAuth } from "@/app/providers";
+import { getDiagnosesByPatient } from "@/lib/api";
 import {
   FileText,
   Clock,
@@ -19,22 +20,24 @@ import {
   Image as ImageIcon,
   Check,
   ClipboardList,
+  AlertTriangle,
 } from "lucide-react";
 
 interface Diagnosis {
   id: string;
-  patient_name: string;
+  patient_name?: string;
   patient_id: string;
   diagnosis_date: string;
-  condition: string;
-  severity: "Low" | "Moderate" | "High";
-  status: "Active" | "Resolved" | "Monitoring";
-  recommendation: string;
+  condition?: string;
+  severity?: "Low" | "Moderate" | "High";
+  status?: "Active" | "Resolved" | "Monitoring";
+  recommendation?: string;
   treatment_plan?: string;
-  overdue: boolean;
-  clinical_findings: string[];
-  last_treatment_date: string;
-  next_review_date: string;
+  overdue?: boolean;
+  clinical_findings?: string[];
+  last_treatment_date?: string;
+  next_review_date?: string;
+  [key: string]: any; // Allow additional fields from backend
 }
 
 export default function DiagnosisPage() {
@@ -43,6 +46,7 @@ export default function DiagnosisPage() {
   const patientId = params?.id as string;
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,96 +76,28 @@ export default function DiagnosisPage() {
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpNotes, setFollowUpNotes] = useState("");
 
-  // Mock data - Replace with actual API call
+  // Fetch real diagnoses from API
   useEffect(() => {
-    if (isAuthenticated) {
-      setTimeout(() => {
-        setDiagnoses([
-          {
-            id: "1",
-            patient_name: "John Doe",
-            patient_id: "P001",
-            diagnosis_date: "2024-03-20",
-            condition: "Dental Caries (Class II)",
-            severity: "Moderate",
-            status: "Active",
-            recommendation: "Restorative treatment required",
-            treatment_plan:
-              "Composite filling on tooth 16 DO. Avoid cold drinks.",
-            overdue: true,
-            clinical_findings: [
-              "Pain on biting",
-              "Visible cavitation",
-              "Thermal sensitivity",
-            ],
-            last_treatment_date: "2023-11-15",
-            next_review_date: "2024-04-05",
-          },
-          {
-            id: "2",
-            patient_name: "Jane Smith",
-            patient_id: "P002",
-            diagnosis_date: "2024-03-18",
-            condition: "Gingivitis",
-            severity: "Low",
-            status: "Monitoring",
-            recommendation: "Follow-up in 3 months",
-            treatment_plan:
-              "Scale and polish completed. Prescribed chlorhexidine mouthwash.",
-            overdue: false,
-            clinical_findings: [
-              "Bleeding on probing",
-              "Red, swollen gums",
-              "No attachment loss",
-            ],
-            last_treatment_date: "2024-03-18",
-            next_review_date: "2024-06-18",
-          },
-          {
-            id: "3",
-            patient_name: "Robert Johnson",
-            patient_id: "P003",
-            diagnosis_date: "2024-02-10",
-            condition: "Irreversible Pulpitis",
-            severity: "High",
-            status: "Active",
-            recommendation: "Root canal therapy urgent",
-            treatment_plan:
-              "Endodontic access, extirpation, medication. Schedule for obturation.",
-            overdue: true,
-            clinical_findings: [
-              "Spontaneous severe pain",
-              "Prolonged pain to cold",
-              "Tender to percussion",
-            ],
-            last_treatment_date: "2022-05-20",
-            next_review_date: "2024-02-15",
-          },
-          {
-            id: "4",
-            patient_name: "Emily Davis",
-            patient_id: "P004",
-            diagnosis_date: "2024-01-25",
-            condition: "Periodontitis (Stage II, Grade B)",
-            severity: "Moderate",
-            status: "Resolved",
-            recommendation: "Maintain routine hygiene appointments",
-            treatment_plan:
-              "Non-surgical periodontal therapy completed. Pocket depths reduced < 4mm.",
-            overdue: false,
-            clinical_findings: [
-              "Probing depths 5-6mm initially",
-              "Radiographic bone loss 15-33%",
-              "Mobility Grade 1",
-            ],
-            last_treatment_date: "2024-02-28",
-            next_review_date: "2024-08-28",
-          },
-        ]);
-        setLoading(false);
-      }, 600);
+    if (isAuthenticated && patientId) {
+      const fetchDiagnoses = async () => {
+        try {
+          setLoading(true);
+          setError("");
+          const data = await getDiagnosesByPatient(patientId);
+          setDiagnoses(Array.isArray(data) ? data : []);
+        } catch (err: any) {
+          console.error("[Diagnosis Page] Failed to fetch diagnoses:", err);
+          setError(
+            err.message || "Failed to load diagnoses. Please try again.",
+          );
+          setDiagnoses([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchDiagnoses();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, patientId]);
 
   // Handler functions for modal actions
   const handleViewMedia = (diagnosisId: string) => {
@@ -216,10 +152,7 @@ export default function DiagnosisPage() {
 
   const filteredDiagnoses = diagnoses.filter((d) => {
     // Patient filter
-    const patientMatch =
-      !patientId ||
-      d.patient_id === patientId ||
-      patientId === "P001"; /* mock matching */
+    const patientMatch = !patientId || d.patient_id === patientId;
 
     // Search filter
     const searchLower = searchQuery.toLowerCase();

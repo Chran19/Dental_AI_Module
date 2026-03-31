@@ -11,7 +11,6 @@ import {
   CheckCircle,
   Activity,
   FileText,
-  Download,
   Info,
   Maximize,
   Bone,
@@ -34,16 +33,6 @@ export default function UploadPage() {
   const [annotationMode, setAnnotationMode] = useState(false);
   const [fullscreenMode, setFullscreenMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleExportPDF = () => {
-    // Mock PDF export logic
-    const link = document.createElement("a");
-    link.href = "data:application/pdf;base64,mockpdf";
-    link.download = `Analysis_Report_${new Date().getTime()}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -109,11 +98,6 @@ export default function UploadPage() {
                 bone assessment.
               </p>
             </div>
-            {result && result.status === "success" && (
-              <button onClick={handleExportPDF} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 font-medium text-sm transition border border-indigo-200">
-                <Download size={16} /> Export PDF Report
-              </button>
-            )}
           </div>
 
           <form onSubmit={handleUpload} className="space-y-4">
@@ -343,11 +327,18 @@ export default function UploadPage() {
                   </div>
                 </div>
 
-                <div className={`relative flex-1 bg-black min-h-[400px] flex items-center justify-center p-4 group ${fullscreenMode ? 'fixed inset-0 z-50 h-screen w-screen' : ''}`}>
+                <div
+                  className={`relative flex-1 bg-black min-h-[400px] flex items-center justify-center p-4 group ${fullscreenMode ? "fixed inset-0 z-50 h-screen w-screen" : ""}`}
+                >
                   {/* Simulated Interactive Image Container */}
                   <div className="relative">
                     {fullscreenMode && (
-                      <button onClick={() => setFullscreenMode(false)} className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-bold">Exit Fullscreen</button>
+                      <button
+                        onClick={() => setFullscreenMode(false)}
+                        className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-bold"
+                      >
+                        Exit Fullscreen
+                      </button>
                     )}
                     <img
                       src={
@@ -359,19 +350,22 @@ export default function UploadPage() {
                       className="max-w-full max-h-[500px] object-contain"
                     />
 
-                    {/* Mock interactive bounding box (only visible on hover) */}
-                    <div className="absolute top-[30%] left-[40%] w-[20%] h-[25%] border-2 border-red-500 bg-red-500/10 cursor-pointer group-hover:opacity-100 opacity-0 transition group">
-                      <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap hidden group-hover:block z-10">
-                        {result.pathology_analysis?.primary_pathology?.name ||
-                          "Detected Region"}{" "}
-                        (
-                        {(
-                          result.pathology_analysis?.primary_pathology
-                            ?.confidence * 100 || 92
-                        ).toFixed(1)}
-                        %)
+                    {/* Interactive bounding box showing detected pathology region */}
+                    {/* Interactive bounding box showing detected pathology region */}
+                    {result.pathology_analysis?.primary_pathology && (
+                      <div className="absolute top-[30%] left-[40%] w-[20%] h-[25%] border-2 border-red-500 bg-red-500/10 cursor-pointer group-hover:opacity-100 opacity-0 transition group">
+                        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap hidden group-hover:block z-10">
+                          {result.pathology_analysis?.primary_pathology?.name ||
+                            "Detected Region"}{" "}
+                          (
+                          {(
+                            result.pathology_analysis?.primary_pathology
+                              ?.confidence * 100 || 92
+                          ).toFixed(1)}
+                          %)
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>

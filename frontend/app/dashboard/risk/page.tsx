@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { assessRisk, getRiskAssessments } from "@/lib/api";
+import {
+  assessRisk,
+  getRiskAssessments,
+  getPatients,
+  getRiskAssessmentsByPatient,
+  downloadRiskAssessmentReportPDF,
+} from "@/lib/api";
 import { useAuth } from "@/app/providers";
 import {
   AlertTriangle,
@@ -16,11 +22,13 @@ import {
   ChevronRight,
   ChevronLeft,
   PieChart,
+  Download,
 } from "lucide-react";
 
 export default function RiskPage() {
   const { isAuthenticated } = useAuth();
   const [assessments, setAssessments] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -30,7 +38,7 @@ export default function RiskPage() {
   const [currentStep, setCurrentStep] = useState(1);
 
   const [formData, setFormData] = useState({
-    patient_id: "550e8400-e29b-41d4-a716-446655440000",
+    patient_id: "",
     age: "65",
     gender: "Male",
     smoking_status: "Former_Smoker",
@@ -57,25 +65,51 @@ export default function RiskPage() {
     "Fractured_Tooth",
   ];
 
+  const handleExportPDF = async () => {
+    if (!formData.patient_id) {
+      setError("Please select a patient first");
+      return;
+    }
+    try {
+      await downloadRiskAssessmentReportPDF(formData.patient_id);
+    } catch (err: any) {
+      console.error("[Risk] Failed to export PDF:", err);
+      setError("Failed to generate risk assessment PDF");
+    }
+  };
+
   useEffect(() => {
-    const fetchAssessments = async () => {
+    const fetchData = async () => {
       try {
-        const data = await getRiskAssessments();
-        setAssessments(Array.isArray(data) ? data : []);
+        const patientsData = await getPatients();
+        setPatients(Array.isArray(patientsData) ? patientsData : []);
+
+        // Auto-select first patient if available
+        if (Array.isArray(patientsData) && patientsData.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            patient_id: patientsData[0].id || "",
+          }));
+        }
       } catch (err: any) {
-        console.log("[Risk] No assessment history:", err.message);
+        console.log("[Risk] Failed to fetch patients:", err.message);
       }
     };
 
-    if (isAuthenticated) fetchAssessments();
+    if (isAuthenticated) fetchData();
   }, [isAuthenticated]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     if (currentStep === 1) {
-      if (!formData.patient_id || !formData.age || !formData.gender || !formData.smoking_status) {
+      if (
+        !formData.patient_id ||
+        !formData.age ||
+        !formData.gender ||
+        !formData.smoking_status
+      ) {
         setError("Please fill out all patient profile fields.");
         return;
       }
@@ -98,15 +132,6 @@ export default function RiskPage() {
 
     try {
       const result = await assessRisk(formData);
-      // Ensure we have mock score data if the backend didn't provide it
-      if (!result.composite_risk_score) {
-        result.composite_risk_score =
-          result.risk_level === "High"
-            ? 85
-            : result.risk_level === "Moderate"
-              ? 55
-              : 20;
-      }
       setResponse(result);
       setSuccess("Risk assessment completed successfully!");
       setAssessments((prev) => [result, ...prev]);
@@ -236,10 +261,9 @@ export default function RiskPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-sm font-bold text-gray-700 mb-2">
-                            Patient ID
+                            Select Patient
                           </label>
-                          <input
-                            type="text"
+                          <select
                             value={formData.patient_id}
                             onChange={(e) =>
                               setFormData({
@@ -248,7 +272,15 @@ export default function RiskPage() {
                               })
                             }
                             className="w-full text-sm bg-white text-gray-900 font-medium rounded-lg border-gray-300 px-3 py-2 border focus:ring-2 focus:ring-indigo-500 outline-none transition"
-                          />
+                          >
+                            <option value="">-- Choose a patient --</option>
+                            {patients.map((patient: any) => (
+                              <option key={patient.id} value={patient.id}>
+                                {patient.first_name} {patient.last_name} (
+                                {patient.id.slice(0, 8)}...)
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -630,7 +662,13 @@ export default function RiskPage() {
                     </div>
                   </div>
 
-                  <div className="flex justify-center pt-6 border-t border-gray-100">
+                  <div className="flex justify-center gap-3 pt-6 border-t border-gray-100">
+                    <button
+                      onClick={handleExportPDF}
+                      className="px-6 py-2 border border-indigo-200 bg-indigo-50 text-indigo-600 rounded-lg font-bold hover:bg-indigo-100 flex items-center gap-2 transition"
+                    >
+                      <Download size={16} /> Export PDF
+                    </button>
                     <button
                       onClick={() => setCurrentStep(1)}
                       className="px-6 py-2 border border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition"

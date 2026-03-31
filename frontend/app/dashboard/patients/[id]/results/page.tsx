@@ -42,50 +42,20 @@ export default function ResultsPage() {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const data = await getAnalysisResults();
+        const data = await getAnalysisResults(patientId);
         const resultsArray = Array.isArray(data) ? data : [];
 
-        // Mocking some extra data on results for better UI since real data might be bare JSON
-        const enhancedResults = resultsArray.map(
-          (r: Record<string, any>, i: number) => ({
-            ...r,
-            analysis_type:
-              r.analysis_type ||
-              (Math.random() > 0.5 ? "Periapical Lesion" : "Caries Detection"),
-            patient_name: r.patient_name || `Patient 00${i + 1}X`,
-            timestamp:
-              r.timestamp ||
-              new Date(Date.now() - Math.random() * 10000000000).toISOString(),
-            confidence:
-              r.confidence !== undefined
-                ? r.confidence
-                : 0.7 + Math.random() * 0.28,
-            severity:
-              r.severity ||
-              (Math.random() > 0.8
-                ? "critical"
-                : Math.random() > 0.4
-                  ? "high"
-                  : "moderate"),
-            diagnosis:
-              r.diagnosis ||
-              (r.analysis_result?.pathologies
-                ? r.analysis_result.pathologies.join(", ")
-                : "Review needed"),
-          }),
-        );
-
-        setResults(enhancedResults);
-        setFilteredResults(enhancedResults);
+        setResults(resultsArray);
+        setFilteredResults(resultsArray);
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message || "Failed to load image analysis results");
       } finally {
         setLoading(false);
       }
     };
 
-    if (isAuthenticated) fetchResults();
-  }, [isAuthenticated]);
+    if (isAuthenticated && patientId) fetchResults();
+  }, [isAuthenticated, patientId]);
 
   useEffect(() => {
     let filtered = [...results];
@@ -99,10 +69,9 @@ export default function ResultsPage() {
       filtered = filtered.filter((r) => r.confidence >= min);
     }
 
-    // Patient filter mapping to mock response
+    // Patient filter
     if (patientId) {
-      // In a production environment, we'd filter by the real patient ID:
-      // filtered = filtered.filter(r => r.patient_id === patientId);
+      filtered = filtered.filter((r) => r.patient_id === patientId);
     }
 
     setFilteredResults(filtered);

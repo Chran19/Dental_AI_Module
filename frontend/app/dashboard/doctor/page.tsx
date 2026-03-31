@@ -40,83 +40,98 @@ export default function DoctorDashboard() {
   }, []);
 
   useEffect(() => {
-    // Simulate API fetch for real-time data
+    // Fetch real data from backend/store
     const fetchDashboardData = async () => {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800)); // Simulate network
-      setData({
-        stats: {
-          todayConsultations: 7,
-          pendingDiagnoses: 3,
-          activePlans: 15,
-          completedThisMonth: 42,
-        },
-        alerts: [
-          {
-            type: "urgent",
-            message: "1 diagnosis awaiting confirmation",
-            details: "Patient: John Smith - Periapical lesion detected",
-          },
-          {
-            type: "warning",
-            message: "2 overdue follow-ups",
-            details: "Patients: Sarah Johnson, Mike Brown",
-          },
-        ],
-        schedule: [
-          {
-            time: "09:00 AM",
-            patient: "John Doe",
-            issue: "Root Canal - Tooth 36",
-            status: "Upcoming",
-          },
-          {
-            time: "10:30 AM",
-            patient: "Jane Smith",
-            issue: "Crown Placement - Tooth 11",
-            status: "In Progress",
-          },
-          {
-            time: "01:00 PM",
-            patient: "Mike Johnson",
-            issue: "Filling - Tooth 16",
-            status: "Scheduled",
-          },
-          {
-            time: "02:30 PM",
-            patient: "Sarah Wilson",
-            issue: "Oral Exam",
-            status: "Scheduled",
-          },
-        ],
-        recentCases: [
-          {
-            patient: "Alice Brown",
-            diagnosis: "Dental Caries",
-            date: "2024-03-20",
+      try {
+        // Get queue data (already being loaded)
+        const queueData = await fetchQueue();
+
+        // Calculate real stats from queue
+        const stats = {
+          todayConsultations: queueData.filter(
+            (q) => q.status === "In_Consultation",
+          ).length,
+          pendingDiagnoses: queueData.filter((q) => q.status === "Waiting")
+            .length,
+          activePlans: queueData.length,
+          completedThisMonth: queueData.filter((q) => q.status === "Completed")
+            .length,
+        };
+
+        // Generate alerts from real queue data
+        const alerts: any[] = [];
+        queueData.forEach((item) => {
+          if (item.status === "Waiting") {
+            const checkInTime = item.check_in_time
+              ? new Date(item.check_in_time).getTime()
+              : Date.now();
+            const waitMinutes = Math.floor((Date.now() - checkInTime) / 60000);
+            if (waitMinutes > 30) {
+              alerts.push({
+                type: "urgent",
+                message: `${item.patient_name} waiting ${waitMinutes}+ minutes`,
+                details: `Patient ID: ${item.patient_id}`,
+              });
+            }
+          }
+        });
+
+        // Use real queue as schedule (In_Consultation and Waiting)
+        const schedule = queueData
+          .filter((q) => ["Waiting", "In_Consultation"].includes(q.status))
+          .slice(0, 4)
+          .map((q) => ({
+            time: q.check_in_time
+              ? new Date(q.check_in_time).toLocaleTimeString()
+              : "N/A",
+            patient: q.patient_name,
+            issue: "Consultation",
+            status: q.status === "In_Consultation" ? "In Progress" : "Waiting",
+          }));
+
+        // Use completed queue items as recent cases
+        const recentCases = queueData
+          .filter((q) => q.status === "Completed")
+          .slice(0, 3)
+          .map((q) => ({
+            patient: q.patient_name,
+            diagnosis: "Assessment Completed",
+            date: q.check_in_time
+              ? new Date(q.check_in_time).toLocaleDateString()
+              : "N/A",
             status: "Completed",
+          }));
+
+        setData({
+          stats,
+          alerts: alerts.length > 0 ? alerts : [],
+          schedule: schedule.length > 0 ? schedule : [],
+          recentCases: recentCases.length > 0 ? recentCases : [],
+        });
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        // Set empty data on error
+        setData({
+          stats: {
+            todayConsultations: 0,
+            pendingDiagnoses: 0,
+            activePlans: 0,
+            completedThisMonth: 0,
           },
-          {
-            patient: "Bob Davis",
-            diagnosis: "Gingivitis",
-            date: "2024-03-19",
-            status: "Completed",
-          },
-          {
-            patient: "Carol White",
-            diagnosis: "Root Canal",
-            date: "2024-03-18",
-            status: "In Treatment",
-          },
-        ],
-      });
-      setLoading(false);
+          alerts: [],
+          schedule: [],
+          recentCases: [],
+        });
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchDashboardData();
     loadQueue();
 
-    // Upgrade 1: Auto-refresh queue every 15 seconds to keep doctor dashboard live
+    // Auto-refresh queue every 15 seconds to keep doctor dashboard live
     const interval = setInterval(loadQueue, 15000);
     return () => clearInterval(interval);
   }, [loadQueue]);

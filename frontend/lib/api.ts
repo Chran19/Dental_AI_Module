@@ -125,10 +125,19 @@ export async function uploadImage(file: File) {
   });
 }
 
-export async function getAnalysisResults() {
-  // Note: Backend doesn't have a dedicated /results endpoint
-  // Results are returned directly from upload
-  return Promise.resolve([]);
+export async function getAnalysisResults(patientId?: string) {
+  // Phase 5: Retrieve real image analysis results from backend
+  if (!patientId) {
+    console.warn('[API] getAnalysisResults called without patientId');
+    return [];
+  }
+  
+  try {
+    return await fetchAPI(`/image-analysis?patient_id=${patientId}`);
+  } catch (err) {
+    console.error('[API] Failed to fetch image analysis results:', err);
+    throw err;
+  }
 }
 
 export async function uploadAndAnalyzeImage(file: File, patientId?: string, withDiagnosis: boolean = false) {
@@ -150,61 +159,54 @@ export async function uploadAndAnalyzeImage(file: File, patientId?: string, with
 // Patient endpoints
 export async function getPatients() {
   try {
-    return await fetchAPI('/api/patients');
+    return await fetchAPI('/patients');
   } catch (err) {
-    console.log('[API] Using mock patients data due to:', err);
-    // Fallback to mock data during development
-    return [
-      { id: "550e8400-e29b-41d4-a716-446655440000", first_name: "John", last_name: "Doe", email: "john@example.com", phone: "555-0001" },
-      { id: "550e8400-e29b-41d4-a716-446655440001", first_name: "Jane", last_name: "Smith", email: "jane@example.com", phone: "555-0002" },
-      { id: "550e8400-e29b-41d4-a716-446655440002", first_name: "Robert", last_name: "Johnson", email: "robert@example.com", phone: "555-0003" },
-    ];
+    console.error('[API] Failed to fetch patients:', err);
+    throw err;  // Phase 1: No mock fallback - let errors propagate
   }
 }
 
 export async function createPatient(data: {
   first_name: string;
   last_name: string;
-  email: string;
-  phone?: string;
+  dob: string;  // ISO date string
+  gender: string;  // 'Male' | 'Female' | 'Other'
+  contact_email?: string;
+  contact_phone?: string;
 }) {
   try {
-    return await fetchAPI('/api/patients', {
+    return await fetchAPI('/patients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
   } catch (err) {
-    console.log('[API] Create patient fallback:', err);
-    // Return mock success
-    return {
-      id: `550e8400-e29b-41d4-a716-${Math.random().toString().substring(2, 12).padEnd(12, '0')}`,
-      ...data,
-    };
+    console.error('[API] Failed to create patient:', err);
+    throw err;  // Phase 1: No mock fallback
   }
 }
 
 export async function updatePatient(id: string, data: any) {
   try {
-    return await fetchAPI(`/api/patients/${id}`, {
+    return await fetchAPI(`/patients/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
   } catch (err) {
-    console.log('[API] Update patient fallback:', err);
-    return { id, ...data };
+    console.error('[API] Failed to update patient:', err);
+    throw err;  // Phase 1: No mock fallback
   }
 }
 
 export async function deletePatient(id: string) {
   try {
-    return await fetchAPI(`/api/patients/${id}`, {
+    return await fetchAPI(`/patients/${id}`, {
       method: 'DELETE',
     });
   } catch (err) {
-    console.log('[API] Delete patient fallback:', err);
-    return { success: true };
+    console.error('[API] Failed to delete patient:', err);
+    throw err;  // Phase 1: No mock fallback
   }
 }
 
@@ -375,34 +377,60 @@ export async function getClinicalInputs() {
 }
 
 // Diagnosis endpoints
+export async function getDiagnosesByPatient(patientId: string) {
+  try {
+    return await fetchAPI(`/diagnosis?patient_id=${patientId}`);
+  } catch (err) {
+    console.error('[API] Failed to fetch diagnoses for patient:', err);
+    throw err;  // Phase 2: No mock fallback - let errors propagate
+  }
+}
+
 export async function getDiagnosis(caseId?: string) {
   try {
     if (caseId) {
-      return await fetchAPI(`/api/diagnosis/${caseId}`);
+      return await fetchAPI(`/diagnosis/${caseId}`);
     }
-    return await fetchAPI('/api/diagnosis');
+    return await fetchAPI('/diagnosis');
   } catch (err) {
-    console.log('[API] Using mock diagnosis data:', err);
-    return [];
+    console.error('[API] Failed to fetch diagnoses:', err);
+    throw err;  // Phase 2: No mock fallback
   }
 }
 
 export async function createDiagnosis(data: any) {
   try {
-    return await fetchAPI('/api/diagnosis/differential', {
+    return await fetchAPI('/diagnosis/differential', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
   } catch (err) {
-    console.log('[API] Diagnosis endpoint fallback:', err);
-    return {
-      module: "M3_Differential_Diagnosis",
-      diagnoses: [
-        { rank: 1, diagnosis: "Dental Caries", confidence: 0.85 },
-        { rank: 2, diagnosis: "Periodontal Disease", confidence: 0.72 },
-      ]
-    };
+    console.error('[API] Failed to create diagnosis:', err);
+    throw err;  // Phase 2: No mock fallback - let errors propagate
+  }
+}
+
+// Treatment endpoints
+export async function getTreatmentsByPatient(patientId: string) {
+  try {
+    return await fetchAPI(`/treatment?patient_id=${patientId}`);
+  } catch (err) {
+    console.error('[API] Failed to fetch treatment plans:', err);
+    throw err;  // Phase 3: No mock fallback
+  }
+}
+
+export async function suggestTreatment(data: any) {
+  try {
+    return await fetchAPI('/treatment/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch (err) {
+    console.error('[API] Failed to suggest treatment:', err);
+    throw err;  // Phase 3: No mock fallback
   }
 }
 
@@ -521,7 +549,7 @@ export async function assessRisk(data: any) {
   console.log('[Risk] Submitting risk assessment payload:', JSON.stringify(cleanedPayload, null, 2));
   
   try {
-    const result = await fetchAPI('/api/risk-engine/assess', {
+    const result = await fetchAPI('/risk-engine/assess', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cleanedPayload),
@@ -530,14 +558,16 @@ export async function assessRisk(data: any) {
     return result;
   } catch (err) {
     console.error('[API] Risk assessment error:', err);
-    console.log('[API] Using fallback mock data');
-    return {
-      module: "M2_Risk_Engine",
-      risk_level: "Medium",
-      composite_risk_score: 65,
-      alerts: [{ severity: "Warning", message: "Moderate risk detected" }],
-      implant_feasibility: "Conditional"
-    };
+    throw err; // Phase 4: No mock fallback - let errors propagate
+  }
+}
+
+export async function getRiskAssessmentsByPatient(patientId: string) {
+  try {
+    return await fetchAPI(`/risk-engine?patient_id=${patientId}`);
+  } catch (err) {
+    console.error('[API] Failed to fetch risk assessments:', err);
+    throw err;
   }
 }
 
@@ -550,4 +580,129 @@ export async function getRiskAssessments() {
 // Health check
 export async function checkHealth() {
   return fetchAPI('/health', { withAuth: false });
+}
+
+// PDF Report Generation
+export async function downloadDiagnosisReportPDF(patientId: string) {
+  try {
+    const response = await fetch(
+      `${API_URL}/explainability/reports/diagnosis/${patientId}/pdf`,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `Failed to generate diagnosis report: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Diagnosis_Report_${patientId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('[API] Failed to download diagnosis report PDF:', err);
+    throw err;
+  }
+}
+
+export async function downloadTreatmentReportPDF(patientId: string) {
+  try {
+    const response = await fetch(
+      `${API_URL}/explainability/reports/treatment/${patientId}/pdf`,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `Failed to generate treatment report: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Treatment_Plan_${patientId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('[API] Failed to download treatment report PDF:', err);
+    throw err;
+  }
+}
+
+export async function downloadRiskAssessmentReportPDF(patientId: string) {
+  try {
+    const response = await fetch(
+      `${API_URL}/explainability/reports/risk/${patientId}/pdf`,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `Failed to generate risk assessment report: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Risk_Assessment_${patientId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('[API] Failed to download risk assessment report PDF:', err);
+    throw err;
+  }
+}
+
+export async function downloadImageAnalysisReportPDF(patientId: string) {
+  try {
+    const response = await fetch(
+      `${API_URL}/explainability/reports/image_analysis/${patientId}/pdf`,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || `Failed to generate image analysis report: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Image_Analysis_${patientId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('[API] Failed to download image analysis report PDF:', err);
+    throw err;
+  }
 }
