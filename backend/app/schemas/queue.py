@@ -45,12 +45,15 @@ class QueueListResponse(BaseModel):
     patient_name: str
     patient_phone: Optional[str] = None
     status: str
+    priority: str = "NORMAL"  # Default to NORMAL; can be enhanced to derive from diagnosis
     check_in_time: Optional[datetime] = None
     assigned_doctor_id: Optional[uuid.UUID] = None
     doctor_name: Optional[str] = None
     position_in_queue: int
     estimated_wait_time: Optional[int] = None  # in minutes
     created_at: datetime
+    reason_of_visit: Optional[str] = None  # Added to match frontend expectations
+    notes: Optional[str] = None  # Added to match frontend expectations
 
     class Config:
         from_attributes = True

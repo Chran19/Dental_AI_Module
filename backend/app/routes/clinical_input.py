@@ -128,3 +128,150 @@ async def validate_clinical_input(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"message": "Internal server error."},
         )
+
+
+# ═════════════════════════════════════════════════════════════════════════════════
+# GET /api/clinical-input/patient/{patient_id}
+# ═════════════════════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/patient/{patient_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Get all assessments for a patient",
+    description="Retrieves all clinical assessments (cases) for a specific patient.",
+)
+async def get_patient_assessments(
+    patient_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    doctor_id: uuid.UUID = Depends(get_current_doctor_id),
+):
+    """
+    Retrieve all clinical assessments for a patient authorized to the current doctor.
+    
+    **Authorization:**
+    - Doctor can only view assessments they created or for patients in their care.
+    """
+    try:
+        from sqlalchemy import select
+        from app.models.db_models import ClinicalCase
+        
+        # Query for all assessments for this patient created by this doctor
+        stmt = select(ClinicalCase).where(
+            (ClinicalCase.patient_id == patient_id) &
+            (ClinicalCase.doctor_id == doctor_id)
+        ).order_by(ClinicalCase.created_at.desc())
+        
+        result = await db.execute(stmt)
+        assessments = result.scalars().all()
+        
+        logger.info(
+            "Retrieved %d assessments for patient_id=%s doctor_id=%s",
+            len(assessments),
+            patient_id,
+            doctor_id,
+        )
+        
+        return {
+            "status": "success",
+            "data": [
+                {
+                    "id": str(a.id),
+                    "patient_id": str(a.patient_id),
+                    "doctor_id": str(a.doctor_id),
+                    "clinical_input_json": a.clinical_input_json,
+                    "chief_complaint": a.chief_complaint,
+                    "urgency_flag": a.urgency_flag,
+                    "status": a.status,
+                    "created_at": a.created_at.isoformat(),
+                    "updated_at": a.updated_at.isoformat(),
+                }
+                for a in assessments
+            ],
+            "count": len(assessments),
+        }
+        
+    except Exception as e:
+        logger.exception("Error retrieving patient assessments")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Internal server error."},
+        )
+
+
+# ═════════════════════════════════════════════════════════════════════════════════
+# GET /api/clinical-input/{assessment_id}
+# ═════════════════════════════════════════════════════════════════════════════════
+
+@router.get(
+    "/{assessment_id}",
+    status_code=status.HTTP_200_OK,
+    summary="Get a specific clinical assessment",
+    description="Retrieves detailed information about a specific clinical assessment.",
+)
+async def get_assessment(
+    assessment_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    doctor_id: uuid.UUID = Depends(get_current_doctor_id),
+):
+    """
+    Retrieve a specific clinical assessment by ID.
+    
+    **Authorization:**
+    - Doctor can only view assessments they created.
+    """
+    try:
+        from sqlalchemy import select
+        from app.models.db_models import ClinicalCase
+        
+        # Query for the specific assessment
+        stmt = select(ClinicalCase).where(
+            (ClinicalCase.id == assessment_id) &
+            (ClinicalCase.doctor_id == doctor_id)
+        )
+        
+        result = await db.execute(stmt)
+        assessment = result.scalar_one_or_none()
+        
+        if not assessment:
+            logger.warning(
+                "Assessment not found or unauthorized: assessment_id=%s doctor_id=%s",
+                assessment_id,
+                doctor_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={"message": "Assessment not found."},
+            )
+        
+        logger.info(
+            "Retrieved assessment: assessment_id=%s doctor_id=%s",
+            assessment_id,
+            doctor_id,
+        )
+        
+        return {
+            "status": "success",
+            "data": {
+                "id": str(assessment.id),
+                "patient_id": str(assessment.patient_id),
+                "doctor_id": str(assessment.doctor_id),
+                "clinical_input_json": assessment.clinical_input_json,
+                "chief_complaint": assessment.chief_complaint,
+                "urgency_flag": assessment.urgency_flag,
+                "input_valid": assessment.input_valid,
+                "status": assessment.status,
+                "risk_assessment_json": assessment.risk_assessment_json,
+                "risk_level": assessment.risk_level,
+                "created_at": assessment.created_at.isoformat(),
+                "updated_at": assessment.updated_at.isoformat(),
+            },
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Error retrieving assessment")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"message": "Internal server error."},
+        )

@@ -93,12 +93,15 @@ async def get_active_queue(
                     patient_name=f"{entry.patient.first_name} {entry.patient.last_name}",
                     patient_phone=entry.patient.contact_phone,
                     status=entry.status,
+                    priority="NORMAL",  # TODO: Derive from patient diagnosis/investigation urgency
                     check_in_time=entry.check_in_time,
                     assigned_doctor_id=entry.assigned_doctor_id,
                     doctor_name=doctor_name,
                     position_in_queue=idx,
                     estimated_wait_time=None,
                     created_at=entry.created_at,
+                    reason_of_visit=entry.notes,  # Store reason in notes field
+                    notes=entry.notes,
                 )
             )
         except Exception as e:

@@ -135,8 +135,8 @@ class ClinicalInputRequest(BaseModel):
     )
 
     # ── 3.5 Site & Bone Assessment ───────────────────────────────────────────
-    tooth_site: str = Field(
-        ..., description="FDI tooth number (V-08)",
+    tooth_sites: list[str] = Field(
+        ..., min_length=1, description="FDI tooth numbers - supports multiple teeth for multi-select (V-08)",
     )
     jaw_region: JawRegion = Field(
         ..., description="Jaw region enum",
@@ -172,14 +172,15 @@ class ClinicalInputRequest(BaseModel):
 
     # ─── FIELD-LEVEL VALIDATORS ──────────────────────────────────────────────
 
-    @field_validator("tooth_site")
+    @field_validator("tooth_sites")
     @classmethod
-    def validate_tooth_site(cls, v: str) -> str:
-        """V-08: FDI notation regex ^[1-4][1-8]$"""
+    def validate_tooth_sites(cls, v: list[str]) -> list[str]:
+        """V-08: FDI notation regex ^[1-4][1-8]$ for each tooth"""
         fdi_pattern = re.compile(r"^[1-4][1-8]$")
-        if not fdi_pattern.match(v.strip()):
-            raise ValueError("Enter a valid tooth number (FDI notation, e.g. 11–48).")
-        return v.strip()
+        for tooth in v:
+            if not fdi_pattern.match(tooth.strip()):
+                raise ValueError(f"Invalid tooth number: {tooth}. Use FDI notation (e.g. 11–48).")
+        return [tooth.strip() for tooth in v]
 
     @field_validator("allergies")
     @classmethod
@@ -256,7 +257,7 @@ class ClinicalInputRequest(BaseModel):
                 "percussion_test": "Positive_Severe",
                 "vitality_test": "Non_Vital",
                 "probing_depth_mm": 6.5,
-                "tooth_site": "36",
+                "tooth_sites": ["36"],
                 "jaw_region": "Posterior_Mandible",
                 "bone_height_mm": 8.5,
                 "bone_width_mm": 6.0,
@@ -315,7 +316,7 @@ class ClinicalAssessmentOutput(BaseModel):
 
 
 class SiteAssessmentOutput(BaseModel):
-    tooth_site: str
+    tooth_sites: list[str]
     jaw_region: JawRegion
     bone_height_mm: Optional[float] = None
     bone_width_mm: Optional[float] = None

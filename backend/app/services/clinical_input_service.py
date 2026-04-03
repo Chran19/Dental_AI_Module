@@ -119,7 +119,7 @@ class ClinicalInputService:
                 probing_depth_mm=sanitized.probing_depth_mm,
             ),
             site_assessment=SiteAssessmentOutput(
-                tooth_site=sanitized.tooth_site,
+                tooth_sites=sanitized.tooth_sites,
                 jaw_region=sanitized.jaw_region,
                 bone_height_mm=sanitized.bone_height_mm,
                 bone_width_mm=sanitized.bone_width_mm,
