@@ -26,6 +26,7 @@ export default function ReceptionistQueuePage() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterPriority, setFilterPriority] = useState("all");
+  const [activeTab, setActiveTab] = useState<"current" | "history">("current");
   const { user } = useAuth();
 
   const checkAlerts = (currentItems: QueueItem[]) => {
@@ -85,6 +86,35 @@ export default function ReceptionistQueuePage() {
   useEffect(() => {
     let result = [...items];
 
+    // Split into current and history based on status
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const isToday = (date: Date) => {
+      const checkDate = new Date(date);
+      checkDate.setHours(0, 0, 0, 0);
+      return checkDate.getTime() === today.getTime();
+    };
+
+    const isAfter = (date: Date, referenceDate: Date) => {
+      return date.getTime() > referenceDate.getTime();
+    };
+
+    if (activeTab === "current") {
+      // Current: Waiting + In_Consultation + Completed (today only)
+      result = result.filter((i) => {
+        const checkInDate = i.check_in_time ? new Date(i.check_in_time) : null;
+        return (
+          i.status === "Waiting" ||
+          i.status === "In_Consultation" ||
+          (i.status === "Completed" && checkInDate && isToday(checkInDate))
+        );
+      });
+    } else {
+      // History: Completed from past days + today's completed
+      result = result.filter((i) => i.status === "Completed");
+    }
+
     // Priority sorting
     result.sort((a, b) => {
       const priorityOrder: Record<string, number> = {
@@ -110,7 +140,7 @@ export default function ReceptionistQueuePage() {
     }
 
     setFilteredItems(result);
-  }, [items, searchQuery, filterPriority]);
+  }, [items, searchQuery, filterPriority, activeTab]);
 
   useEffect(() => {
     loadQueue();
@@ -230,7 +260,32 @@ export default function ReceptionistQueuePage() {
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 mt-6">
+      {/* Tabs for Current Queue vs History */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        <div className="flex gap-0 bg-white border border-slate-300 rounded-lg overflow-hidden">
+          <button
+            onClick={() => setActiveTab("current")}
+            className={`px-6 py-2 font-bold transition-colors ${
+              activeTab === "current"
+                ? "bg-blue-600 text-white"
+                : "bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            Current Queue (
+            {items.filter((i) => i.status !== "Completed").length})
+          </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`px-6 py-2 font-bold transition-colors ${
+              activeTab === "history"
+                ? "bg-blue-600 text-white"
+                : "bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            History ({items.filter((i) => i.status === "Completed").length})
+          </button>
+        </div>
+
         <input
           type="text"
           placeholder="Search patient name or ID..."

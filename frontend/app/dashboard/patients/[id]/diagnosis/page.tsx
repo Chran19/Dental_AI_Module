@@ -351,19 +351,34 @@ export default function DiagnosisPage() {
               <h3 className="text-lg font-bold text-gray-800">
                 No diagnoses found
               </h3>
-              <p className="text-gray-500 mt-2">
-                Try adjusting your search or filters.
+              <p className="text-gray-600 mt-2 max-w-md mx-auto">
+                Diagnoses are generated based on clinical assessments. Submit a
+                clinical assessment first to generate a diagnosis.
               </p>
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setStatusFilter("all");
-                  setSeverityFilter("all");
-                }}
-                className="mt-6 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50"
-              >
-                Clear all filters
-              </button>
+              <div className="flex gap-3 mt-6 justify-center flex-wrap">
+                <Link
+                  href={`/dashboard/patients/${patientId}/clinical`}
+                  className="px-6 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  Create Clinical Assessment
+                </Link>
+                <Link
+                  href={`/dashboard/patients/${patientId}/assessments`}
+                  className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  View Assessments
+                </Link>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("all");
+                    setSeverityFilter("all");
+                  }}
+                  className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
             </div>
           ) : (
             filteredDiagnoses.map((diagnosis) => {

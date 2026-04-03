@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQueueStatus } from "@/lib/hooks/useQueueStatus";
 import { Patient } from "@/lib/types/patient";
 import { fetchPatientById, updateQueueStatus } from "@/lib/store";
+import { getAssessmentsByPatient } from "@/lib/api";
 import {
   User,
   Phone,
@@ -27,6 +28,7 @@ import {
   LogOut,
   Printer,
   Download,
+  ClipboardList,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -48,6 +50,8 @@ export default function PatientProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [assessmentsLoading, setAssessmentsLoading] = useState(true);
   const [isEndingConsultation, setIsEndingConsultation] = useState(false);
   const [showPrintMenu, setShowPrintMenu] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -74,6 +78,26 @@ export default function PatientProfilePage() {
     };
 
     loadPatient();
+  }, [patientId]);
+
+  // Load clinical assessments for the patient
+  useEffect(() => {
+    if (!patientId) return;
+
+    const loadAssessments = async () => {
+      setAssessmentsLoading(true);
+      try {
+        const data = await getAssessmentsByPatient(patientId);
+        setAssessments(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        console.error("Failed to load assessments:", err);
+        setAssessments([]);
+      } finally {
+        setAssessmentsLoading(false);
+      }
+    };
+
+    loadAssessments();
   }, [patientId]);
 
   const handleEndConsultation = async () => {
@@ -410,6 +434,114 @@ export default function PatientProfilePage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Clinical Assessments */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <ClipboardList size={20} className="text-green-600" />
+              Clinical Assessments
+            </h2>
+
+            {assessmentsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="animate-spin text-gray-400" size={24} />
+              </div>
+            ) : assessments.length === 0 ? (
+              <div className="py-6 text-center">
+                <ClipboardList
+                  className="mx-auto mb-3 text-gray-300"
+                  size={32}
+                />
+                <p className="text-gray-600 text-sm mb-4">
+                  No assessments yet. Start by creating a clinical assessment.
+                </p>
+                <Link
+                  href={`/dashboard/patients/${patientId}/clinical`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors text-sm"
+                >
+                  <FileText size={16} />
+                  Create First Assessment
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-gray-900">
+                      {assessments.length}
+                    </p>
+                    <p className="text-xs text-gray-600">Total</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-red-600">
+                      {
+                        assessments.filter((a) => a.urgency_flag === "High")
+                          .length
+                      }
+                    </p>
+                    <p className="text-xs text-gray-600">Urgent</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-green-600">
+                      {
+                        assessments.filter((a) => a.status === "Completed")
+                          .length
+                      }
+                    </p>
+                    <p className="text-xs text-gray-600">Completed</p>
+                  </div>
+                </div>
+
+                {/* Most Recent Assessment Preview */}
+                {assessments.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <p className="text-xs font-semibold text-gray-600 mb-2 uppercase">
+                      Most Recent
+                    </p>
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {assessments[0].chief_complaint}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {new Date(
+                            assessments[0].created_at,
+                          ).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
+                          assessments[0].urgency_flag === "High"
+                            ? "bg-red-100 text-red-800"
+                            : assessments[0].urgency_flag === "Medium"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {assessments[0].urgency_flag}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* View All Link */}
+                <Link
+                  href={`/dashboard/patients/${patientId}/assessments`}
+                  className="flex items-center justify-between w-full px-4 py-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors text-green-700 font-medium text-sm"
+                >
+                  <span>View All Assessments</span>
+                  <ChevronRight size={16} />
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Recent Visits / Activity */}

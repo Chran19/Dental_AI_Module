@@ -346,26 +346,14 @@ export default function ClinicalPage() {
                       <input
                         type="text"
                         value={formData.patient_id}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            patient_id: e.target.value,
-                          })
-                        }
-                        required
-                        list="patients"
-                        placeholder="Search Name or ID"
-                        className="w-full text-sm bg-white text-black font-medium rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none transition placeholder-gray-500"
+                        readOnly
+                        disabled
+                        placeholder="Loading patient..."
+                        className="w-full text-sm bg-gray-100 text-gray-700 font-medium rounded-lg border border-gray-300 px-3 py-2 cursor-not-allowed opacity-75"
                       />
-                      <datalist id="patients">
-                        <option value="550e8400-e29b-41d4-a716-446655440000">
-                          Charlie Brown (Current)
-                        </option>
-                        <option value="NEW-PATIENT-001">John Doe (New)</option>
-                        <option value="NEW-PATIENT-002">
-                          Jane Smith (New)
-                        </option>
-                      </datalist>
+                      <p className="text-xs text-gray-600 italic">
+                        Patient ID is locked to prevent mismatched assessments
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-gray-700">
@@ -831,14 +819,22 @@ export default function ClinicalPage() {
                       <h3 className="text-xl font-bold text-green-800 mb-2">
                         Success!
                       </h3>
-                      <p className="text-green-700">{success}</p>
-                      <button
-                        type="button"
-                        onClick={resetForm}
-                        className="mt-6 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors"
-                      >
-                        Start New Assessment
-                      </button>
+                      <p className="text-green-700 mb-6">{success}</p>
+                      <div className="flex gap-3 justify-center">
+                        <Link
+                          href={`/dashboard/patients/${patientId}/assessments`}
+                          className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium transition-colors"
+                        >
+                          View Assessment
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={resetForm}
+                          className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors"
+                        >
+                          Start New Assessment
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
