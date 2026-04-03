@@ -159,7 +159,7 @@ export async function checkInPatient(
   patientId: string,
   notes?: string,
   reasonOfVisit?: string,
-): Promise<QueueItem | null> {
+): Promise<QueueItem> {
   try {
     const result = await fetchAPI('/queue/check-in', {
       method: 'POST',
@@ -169,30 +169,23 @@ export async function checkInPatient(
         notes: reasonOfVisit ? `Reason: ${reasonOfVisit}${notes ? '. ' + notes : ''}` : notes,
       }),
     });
+    
+    // Validate response
+    if (!result || !result.id) {
+      throw new Error('Invalid response from check-in endpoint');
+    }
+    
     addActivity('Patient checked in', `Queue #${result.id?.substring(0, 8) || 'new'}`);
     return result;
   } catch (err) {
-    console.warn('[Store] Backend unavailable for check-in, saving locally:', err);
-    // Fallback: add to local queue
-    const patients = getLocalPatients();
-    const patient = patients.find(p => p.id === patientId);
-    const localItem: QueueItem = {
-      id: crypto.randomUUID(),
-      patient_id: patientId,
-      patient_name: patient ? `${patient.first_name} ${patient.last_name}` : 'Unknown',
-      patient_phone: patient?.contact_phone || patient?.phone,
-      check_in_time: new Date().toISOString(),
-      status: 'Waiting',
-      priority: 'NORMAL',
-      reason_of_visit: reasonOfVisit,
-      notes,
-      created_at: new Date().toISOString(),
-    };
-    const locals = getLocalQueue();
-    locals.push(localItem);
-    saveLocalQueue(locals);
-    addActivity('Patient checked in (offline)', localItem.patient_name);
-    return localItem;
+    const errorMessage = err instanceof Error ? err.message : 'Failed to check in patient';
+    console.error('[Store] Check-in failed:', errorMessage);
+    // Re-throw the error to let the caller handle it
+    // IMPORTANT: Do NOT create a local queue item here because:
+    // - The queue page fetches from backend only, not localStorage
+    // - A local-only item will appear to succeed but won't be synced to backend
+    // - This creates confusion when the queue page doesn't show the patient
+    throw new Error(`Unable to check in patient: ${errorMessage}`);
   }
 }
 

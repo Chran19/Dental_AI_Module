@@ -5,7 +5,7 @@ export interface QueueItem {
   patient_id: string;
   patient_name: string;
   patient_phone?: string;
-  check_in_time: string;
+  check_in_time: string;  // ISO date string
   status: QueueStatus;
   priority: 'NORMAL' | 'URGENT' | 'EMERGENCY';
   assigned_doctor_id?: string;
@@ -14,5 +14,5 @@ export interface QueueItem {
   estimated_wait_time?: number;
   reason_of_visit?: string;
   notes?: string;
-  created_at?: string;
+  created_at?: string;  // ISO date string
 }

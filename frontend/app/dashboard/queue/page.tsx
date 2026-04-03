@@ -12,6 +12,7 @@ import {
   Clock,
   CheckCircle,
   UserPlus,
+  AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/app/providers";
 import Link from "next/link";
@@ -20,6 +21,7 @@ export default function ReceptionistQueuePage() {
   const [items, setItems] = useState<QueueItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<QueueItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,7 +32,9 @@ export default function ReceptionistQueuePage() {
     const alerts: any[] = [];
     currentItems.forEach((item) => {
       if (item.status === "Waiting") {
-        const checkInTime = item.check_in_time ? new Date(item.check_in_time).getTime() : Date.now();
+        const checkInTime = item.check_in_time
+          ? new Date(item.check_in_time).getTime()
+          : Date.now();
         const waitMinutes = Math.floor((Date.now() - checkInTime) / 60000);
         if (waitMinutes > 30) {
           alerts.push({
@@ -45,12 +49,16 @@ export default function ReceptionistQueuePage() {
 
   const loadQueue = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const data = await fetchQueue();
       setItems(data);
       checkAlerts(data);
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load queue";
       console.error("Error fetching queue:", err);
+      setLoadError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +92,9 @@ export default function ReceptionistQueuePage() {
         URGENT: 1,
         NORMAL: 2,
       };
-      return (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2);
+      return (
+        (priorityOrder[a.priority] ?? 2) - (priorityOrder[b.priority] ?? 2)
+      );
     });
 
     // Filtering
@@ -175,6 +185,22 @@ export default function ReceptionistQueuePage() {
           </div>
         </div>
       </div>
+
+      {loadError && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-sm text-red-700 font-medium">
+          <AlertCircle size={18} className="flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-bold">Failed to load queue</p>
+            <p className="text-xs text-red-600 mt-0.5">{loadError}</p>
+          </div>
+          <button
+            onClick={loadQueue}
+            className="px-3 py-1 bg-red-100 hover:bg-red-200 rounded text-red-700 font-bold text-xs transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard

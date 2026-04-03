@@ -41,6 +41,7 @@ export default function PatientIntakePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
   // ── Form data ─────────────────────────────────────────────────────────────
@@ -67,15 +68,20 @@ export default function PatientIntakePage() {
   useEffect(() => {
     if (mode !== "returning" || searchQuery.length < 2) {
       setSearchResults([]);
+      setSearchError(null);
       return;
     }
 
     const timer = setTimeout(async () => {
       setIsSearching(true);
+      setSearchError(null);
       try {
         const results = await searchPatients(searchQuery);
         setSearchResults(results);
-      } catch {
+      } catch (err) {
+        const errorMsg =
+          err instanceof Error ? err.message : "Failed to search patients";
+        setSearchError(errorMsg);
         setSearchResults([]);
       } finally {
         setIsSearching(false);
@@ -236,14 +242,25 @@ export default function PatientIntakePage() {
       }
 
       // Add patient to queue automatically
-      await checkInPatient(patientId, undefined, formData.reason_of_visit);
+      const queueItem = await checkInPatient(
+        patientId,
+        undefined,
+        formData.reason_of_visit,
+      );
+
+      // Validate that check-in was successful
+      if (!queueItem) {
+        throw new Error("Failed to check in patient - no queue item returned");
+      }
 
       setCreatedPatientId(patientId);
       setCreatedPatientName(patientName);
       localStorage.removeItem("patient_intake_draft");
       setStep("success");
     } catch (err: any) {
-      setError(err.message || "Failed to register patient");
+      setError(
+        err.message || "Failed to register patient or check in to queue",
+      );
       setIsSubmitting(false);
     }
   };
@@ -376,6 +393,13 @@ export default function PatientIntakePage() {
                 />
               )}
             </div>
+
+            {searchError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-sm text-red-700 font-medium">
+                <AlertCircle size={16} />
+                <span>{searchError}</span>
+              </div>
+            )}
 
             {searchResults.length > 0 && (
               <div className="space-y-3">

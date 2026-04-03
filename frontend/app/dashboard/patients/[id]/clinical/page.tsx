@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { submitClinicalInput } from "@/lib/api";
+import { fetchPatientById } from "@/lib/store";
 import { useAuth } from "@/app/providers";
 import StepNavigation from "@/components/clinical/StepNavigation";
 import {
@@ -69,7 +70,7 @@ const defaultFormData = {
   immunocompromised: false,
   bisphosphonate_therapy: false,
   radiation_therapy_head_neck: false,
-  tooth_site: "11",
+  tooth_sites: ["11"] as string[],
   jaw_region: "Anterior_Maxilla",
 };
 
@@ -84,10 +85,51 @@ export default function ClinicalPage() {
     patient_id: patientId,
   });
 
-  useEffect(() => {
-    if (patientId && formData.patient_id !== patientId) {
-      setFormData((prev) => ({ ...prev, patient_id: patientId }));
+  // Helper function to calculate age from date of birth
+  const calculateAge = (dob: string): number => {
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
+      age--;
     }
+    return age;
+  };
+
+  // Fetch patient demographics on page load
+  useEffect(() => {
+    const loadPatientData = async () => {
+      if (!patientId) return;
+
+      try {
+        const patient = await fetchPatientById(patientId);
+        if (patient) {
+          const dob = patient.date_of_birth || patient.dob;
+          const age = dob ? calculateAge(dob).toString() : defaultFormData.age;
+          const gender = patient.gender || defaultFormData.gender;
+
+          setFormData((prev) => ({
+            ...prev,
+            patient_id: patientId,
+            age: age,
+            gender: gender,
+          }));
+        } else {
+          // Fallback if patient not found
+          setFormData((prev) => ({ ...prev, patient_id: patientId }));
+        }
+      } catch (err) {
+        console.error("Failed to load patient data:", err);
+        // Fallback on error - still update patient_id
+        setFormData((prev) => ({ ...prev, patient_id: patientId }));
+      }
+    };
+
+    loadPatientData();
   }, [patientId]);
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -124,8 +166,8 @@ export default function ClinicalPage() {
       }
     }
     if (currentStep === 3) {
-      if (!formData.tooth_site) {
-        setError("Please select the affected tooth.");
+      if (!formData.tooth_sites || formData.tooth_sites.length === 0) {
+        setError("Please select at least one affected tooth.");
         return;
       }
     }
@@ -182,6 +224,21 @@ export default function ClinicalPage() {
         : [...current.filter((c) => c !== "None"), condition];
       if (updated.length === 0) updated = ["None"];
       setFormData({ ...formData, systemic_conditions: updated });
+    }
+  };
+
+  const toggleTooth = (tooth: string) => {
+    const current = formData.tooth_sites || [];
+    if (current.includes(tooth)) {
+      // Remove tooth if already selected
+      const updated = current.filter((t) => t !== tooth);
+      setFormData({
+        ...formData,
+        tooth_sites: updated.length > 0 ? updated : [tooth],
+      });
+    } else {
+      // Add tooth to selection
+      setFormData({ ...formData, tooth_sites: [...current, tooth] });
     }
   };
 
@@ -535,14 +592,22 @@ export default function ClinicalPage() {
                       </div>
                     </div>
 
-                    {/* Simple Odontogram Tooth Selector */}
+                    {/* Simple Odontogram Tooth Selector - Multi-Select */}
                     <div className="space-y-3">
                       <label className="text-sm font-medium text-gray-700 flex justify-between items-center">
-                        <span>Affected Tooth (FDI)</span>
+                        <span>Affected Tooth/Teeth (FDI)</span>
                         <span className="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">
-                          Selected: {formData.tooth_site}
+                          Selected:{" "}
+                          {formData.tooth_sites &&
+                          formData.tooth_sites.length > 0
+                            ? formData.tooth_sites.join(", ")
+                            : "None"}
                         </span>
                       </label>
+                      <p className="text-xs text-gray-600 italic">
+                        Click to select, click again to deselect. You can select
+                        multiple teeth.
+                      </p>
                       <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                         <div className="text-center font-semibold text-gray-500 text-xs mb-2">
                           MAXILLARY
@@ -553,10 +618,8 @@ export default function ClinicalPage() {
                               <button
                                 key={t}
                                 type="button"
-                                onClick={() =>
-                                  setFormData({ ...formData, tooth_site: t })
-                                }
-                                className={`w-8 h-10 rounded border text-xs font-bold transition-colors ${formData.tooth_site === t ? "bg-indigo-600 text-white border-indigo-700" : "bg-white border-gray-300 hover:bg-gray-200 text-gray-700"}`}
+                                onClick={() => toggleTooth(t)}
+                                className={`w-8 h-10 rounded border text-xs font-bold transition-colors ${formData.tooth_sites?.includes(t) ? "bg-indigo-600 text-white border-indigo-700" : "bg-white border-gray-300 hover:bg-gray-200 text-gray-700"}`}
                               >
                                 {t}
                               </button>
@@ -568,10 +631,8 @@ export default function ClinicalPage() {
                               <button
                                 key={t}
                                 type="button"
-                                onClick={() =>
-                                  setFormData({ ...formData, tooth_site: t })
-                                }
-                                className={`w-8 h-10 rounded border text-xs font-bold transition-colors ${formData.tooth_site === t ? "bg-indigo-600 text-white border-indigo-700" : "bg-white border-gray-300 hover:bg-gray-200 text-gray-700"}`}
+                                onClick={() => toggleTooth(t)}
+                                className={`w-8 h-10 rounded border text-xs font-bold transition-colors ${formData.tooth_sites?.includes(t) ? "bg-indigo-600 text-white border-indigo-700" : "bg-white border-gray-300 hover:bg-gray-200 text-gray-700"}`}
                               >
                                 {t}
                               </button>
@@ -584,10 +645,8 @@ export default function ClinicalPage() {
                               <button
                                 key={t}
                                 type="button"
-                                onClick={() =>
-                                  setFormData({ ...formData, tooth_site: t })
-                                }
-                                className={`w-8 h-10 rounded border text-xs font-bold transition-colors ${formData.tooth_site === t ? "bg-indigo-600 text-white border-indigo-700" : "bg-white border-gray-300 hover:bg-gray-200 text-gray-700"}`}
+                                onClick={() => toggleTooth(t)}
+                                className={`w-8 h-10 rounded border text-xs font-bold transition-colors ${formData.tooth_sites?.includes(t) ? "bg-indigo-600 text-white border-indigo-700" : "bg-white border-gray-300 hover:bg-gray-200 text-gray-700"}`}
                               >
                                 {t}
                               </button>
@@ -599,10 +658,8 @@ export default function ClinicalPage() {
                               <button
                                 key={t}
                                 type="button"
-                                onClick={() =>
-                                  setFormData({ ...formData, tooth_site: t })
-                                }
-                                className={`w-8 h-10 rounded border text-xs font-bold transition-colors ${formData.tooth_site === t ? "bg-indigo-600 text-white border-indigo-700" : "bg-white border-gray-300 hover:bg-gray-200 text-gray-700"}`}
+                                onClick={() => toggleTooth(t)}
+                                className={`w-8 h-10 rounded border text-xs font-bold transition-colors ${formData.tooth_sites?.includes(t) ? "bg-indigo-600 text-white border-indigo-700" : "bg-white border-gray-300 hover:bg-gray-200 text-gray-700"}`}
                               >
                                 {t}
                               </button>
@@ -850,7 +907,10 @@ export default function ClinicalPage() {
                             <p className="text-gray-900">
                               Tooth:{" "}
                               <span className="font-bold text-indigo-700">
-                                {formData.tooth_site}
+                                {formData.tooth_sites &&
+                                formData.tooth_sites.length > 0
+                                  ? formData.tooth_sites.join(", ")
+                                  : "None"}
                               </span>{" "}
                               ({formData.jaw_region.replace(/_/g, " ")})
                             </p>

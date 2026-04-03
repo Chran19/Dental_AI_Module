@@ -25,8 +25,15 @@ import {
   Activity,
   ChevronRight,
   LogOut,
+  Printer,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  printPatientRecord,
+  exportPatientRecordHTML,
+  exportPatientRecordPDF,
+} from "@/lib/utils/printUtils";
 
 export default function PatientProfilePage() {
   const { isAuthenticated, user } = useAuth();
@@ -42,6 +49,9 @@ export default function PatientProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isEndingConsultation, setIsEndingConsultation] = useState(false);
+  const [showPrintMenu, setShowPrintMenu] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [printError, setPrintError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!patientId) return;
@@ -83,6 +93,76 @@ export default function PatientProfilePage() {
       console.error("Failed to end consultation:", err);
       alert("Failed to end consultation. Please try again.");
       setIsEndingConsultation(false);
+    }
+  };
+
+  const handlePrintRecords = async () => {
+    if (!patient) {
+      setPrintError("Patient data not available");
+      return;
+    }
+
+    try {
+      setIsPrinting(true);
+      setPrintError(null);
+      printPatientRecord(patient, {
+        title: "Patient Medical Record",
+        showHeader: true,
+        showFooter: true,
+        includeAllergies: true,
+        includeMedicalHistory: true,
+        includeContactInfo: true,
+      });
+      setShowPrintMenu(false);
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to open print dialog";
+      setPrintError(errorMsg);
+      console.error("[PatientProfile] Print error:", err);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handleExportHTML = async () => {
+    if (!patient) {
+      setPrintError("Patient data not available");
+      return;
+    }
+
+    try {
+      setIsPrinting(true);
+      setPrintError(null);
+      exportPatientRecordHTML(patient);
+      setShowPrintMenu(false);
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to export HTML";
+      setPrintError(errorMsg);
+      console.error("[PatientProfile] Export error:", err);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    if (!patient) {
+      setPrintError("Patient data not available");
+      return;
+    }
+
+    try {
+      setIsPrinting(true);
+      setPrintError(null);
+      exportPatientRecordPDF(patient);
+      setShowPrintMenu(false);
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to export PDF";
+      setPrintError(errorMsg);
+      console.error("[PatientProfile] PDF export error:", err);
+    } finally {
+      setIsPrinting(false);
     }
   };
 
@@ -400,9 +480,57 @@ export default function PatientProfilePage() {
               >
                 New Visit / Check-in
               </Link>
-              <button className="w-full px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                Print Records
-              </button>
+
+              {/* Print Records Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowPrintMenu(!showPrintMenu);
+                    setPrintError(null);
+                  }}
+                  disabled={isPrinting}
+                  className="w-full px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Printer size={14} />
+                  {isPrinting ? "Preparing..." : "Print Records"}
+                </button>
+
+                {showPrintMenu && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+                    <button
+                      onClick={handlePrintRecords}
+                      disabled={isPrinting}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors flex items-center gap-2 border-b border-gray-100 disabled:opacity-50"
+                    >
+                      <Printer size={14} />
+                      Open Print Dialog
+                    </button>
+                    <button
+                      onClick={handleExportHTML}
+                      disabled={isPrinting}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 transition-colors flex items-center gap-2 border-b border-gray-100 disabled:opacity-50"
+                    >
+                      <Download size={14} />
+                      Export as HTML
+                    </button>
+                    <button
+                      onClick={handleExportPDF}
+                      disabled={isPrinting}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 rounded-b-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Download size={14} />
+                      Save as PDF
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {printError && (
+                <div className="px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                  {printError}
+                </div>
+              )}
+
               <button className="w-full px-4 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                 Schedule Appointment
               </button>

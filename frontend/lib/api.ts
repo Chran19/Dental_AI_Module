@@ -320,7 +320,7 @@ export async function submitClinicalInput(data: any) {
     swelling_grade: swellingMap[data.swelling_grade] || 'None',
     fever_present: data.fever_present === true || data.fever_present === 'true',
     temperature_celsius: data.temperature_celsius ? parseFloat(data.temperature_celsius) : undefined,
-    tooth_site: data.tooth_site || "11",
+    tooth_sites: Array.isArray(data.tooth_sites) && data.tooth_sites.length > 0 ? data.tooth_sites : ["11"],
     jaw_region: data.jaw_region || "Anterior_Maxilla",
     observations: data.observations || "",
     treatment_plan: data.treatment_plan || "",
@@ -348,7 +348,7 @@ export async function submitClinicalInput(data: any) {
   console.log('[Clinical] Submitting cleaned payload:', JSON.stringify(cleanedPayload, null, 2));
   
   try {
-    const result = await fetchAPI('/api/clinical-input/validate', {
+    const result = await fetchAPI('/clinical-input/validate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cleanedPayload),
@@ -369,10 +369,43 @@ export async function submitClinicalInput(data: any) {
 
 export async function getClinicalInputs() {
   try {
-    return await fetchAPI('/api/clinical-input');
+    return await fetchAPI('/clinical-input');
   } catch (err) {
     console.log('[API] Get clinical inputs fallback:', err);
     return [];
+  }
+}
+
+/**
+ * Retrieve all clinical assessments (cases) for a specific patient.
+ * Only returns assessments created by the authenticated doctor.
+ * @param patientId - The UUID of the patient
+ * @returns Array of clinical assessments with full Module 1 output JSON
+ */
+export async function getAssessmentsByPatient(patientId: string) {
+  try {
+    const result = await fetchAPI(`/clinical-input/patient/${patientId}`);
+    console.log('[API] Retrieved assessments for patient:', result);
+    return result.data || [];
+  } catch (err) {
+    console.error('[API] Failed to fetch assessments for patient:', err);
+    return [];
+  }
+}
+
+/**
+ * Retrieve a specific clinical assessment by ID.
+ * @param assessmentId - The UUID of the assessment (case_id)
+ * @returns Clinical assessment with full Module 1 and Module 2 output JSON
+ */
+export async function getAssessment(assessmentId: string) {
+  try {
+    const result = await fetchAPI(`/clinical-input/${assessmentId}`);
+    console.log('[API] Retrieved assessment:', result);
+    return result.data;
+  } catch (err) {
+    console.error('[API] Failed to fetch assessment:', err);
+    throw err;
   }
 }
 
