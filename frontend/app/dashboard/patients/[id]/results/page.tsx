@@ -26,7 +26,12 @@ export default function ResultsPage() {
   const params = useParams();
   const router = useRouter();
   const patientId = params?.id as string;
-  const { markAsComplete } = useQueueStatus(patientId);
+  const {
+    markAsComplete,
+    queueId,
+    error: queueError,
+    setError: setQueueError,
+  } = useQueueStatus(patientId);
 
   const [results, setResults] = useState<any[]>([]);
   const [filteredResults, setFilteredResults] = useState<any[]>([]);
@@ -34,6 +39,7 @@ export default function ResultsPage() {
   const [error, setError] = useState("");
   const [completingWorkflow, setCompletingWorkflow] = useState(false);
   const [workflowCompleted, setWorkflowCompleted] = useState(false);
+  const [workflowError, setWorkflowError] = useState("");
 
   // Filters
   const [filterType, setFilterType] = useState("All");
@@ -78,7 +84,19 @@ export default function ResultsPage() {
   }, [filterType, minConfidence, results, patientId]);
 
   const handleCompleteWorkflow = async () => {
+    // Check if queueId is available
+    if (!queueId) {
+      setWorkflowError(
+        "Patient not found in queue. Please ensure patient was properly checked in.",
+      );
+      console.error(
+        "[ResultsPage] Cannot complete workflow: queueId is missing",
+      );
+      return;
+    }
+
     setCompletingWorkflow(true);
+    setWorkflowError("");
     try {
       const success = await markAsComplete();
       if (success) {
@@ -86,9 +104,18 @@ export default function ResultsPage() {
         setTimeout(() => {
           router.push("/dashboard/patients");
         }, 2000);
+      } else {
+        setWorkflowError(
+          queueError || "Failed to complete workflow. Please try again.",
+        );
+        console.error("[ResultsPage] markAsComplete returned false", {
+          queueError,
+        });
       }
     } catch (err) {
-      console.error("Failed to complete workflow:", err);
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      setWorkflowError(`Error: ${errorMsg}`);
+      console.error("[ResultsPage] Exception completing workflow:", err);
     } finally {
       setCompletingWorkflow(false);
     }
@@ -301,10 +328,37 @@ export default function ResultsPage() {
               </div>
             ) : (
               <>
+                {workflowError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-red-700 font-medium text-sm">
+                      {workflowError}
+                    </p>
+                    {!queueId && (
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="mt-2 text-red-600 hover:text-red-800 underline text-sm font-medium"
+                      >
+                        Reload page
+                      </button>
+                    )}
+                  </div>
+                )}
+                {queueError && (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-yellow-700 font-medium text-sm">
+                      Queue Status: {queueError}
+                    </p>
+                  </div>
+                )}
                 <button
                   onClick={handleCompleteWorkflow}
-                  disabled={completingWorkflow}
-                  className="w-full px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition disabled:opacity-70 flex items-center justify-center gap-2"
+                  disabled={completingWorkflow || !queueId}
+                  className="w-full px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  title={
+                    !queueId
+                      ? "Queue ID not found. Patient may not be checked in."
+                      : "Complete this patient's workflow"
+                  }
                 >
                   {completingWorkflow ? "Completing..." : "✓ Complete Workflow"}
                 </button>

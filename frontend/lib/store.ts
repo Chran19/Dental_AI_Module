@@ -202,7 +202,7 @@ export async function updateQueueStatus(
   assignedDoctorId?: string,
 ): Promise<boolean> {
   try {
-    await fetchAPI(`/queue/${queueId}`, {
+    const response = await fetchAPI(`/queue/${queueId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -210,15 +210,33 @@ export async function updateQueueStatus(
         assigned_doctor_id: assignedDoctorId,
       }),
     });
+    
+    if (!response) {
+      console.error('[Store] Queue status update returned empty response');
+      return false;
+    }
+    
     addActivity('Queue status updated', `${status}`);
+    console.log('[Store] Queue status successfully updated to:', status, { response });
     return true;
   } catch (err) {
-    console.warn('[Store] Backend unavailable, updating local queue:', err);
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('[Store] Failed to update queue status on backend:', errorMsg);
+    
+    // OFFLINE FALLBACK: Only for non-critical status updates
+    // For "Completed" status, we require backend confirmation
+    if (status === 'Completed') {
+      console.error('[Store] Cannot complete workflow offline - backend confirmation required');
+      throw new Error('Backend connection required to complete workflow: ' + errorMsg);
+    }
+    
+    // For other status updates (like In_Consultation), use local fallback
     const locals = getLocalQueue();
     const idx = locals.findIndex(i => i.id === queueId);
     if (idx >= 0) {
       locals[idx].status = status as QueueItem['status'];
       saveLocalQueue(locals);
+      console.warn('[Store] Queue status updated locally (offline mode):', status);
     }
     return true;
   }
